@@ -146,9 +146,10 @@ final nonisolated class AppSettings: @unchecked Sendable {
     /// Leveragers: the public source of this modified build (AGPL-3.0).
     private(set) var copyrightURL: URL = "https://github.com/Leveragers-AI/element-x-ios/tree/leveragers"
     /// A URL that contains the app's Terms of use.
-    private(set) var acceptableUseURL: URL = "https://www.leveragers.com"
+    /// Leveragers: the content moderation policy of www.leveragers.com (footer, "Légal").
+    private(set) var acceptableUseURL: URL = "https://www.leveragers.com/legal/politique-de-moderation-du-contenu"
     /// A URL that contains the app's Privacy Policy.
-    private(set) var privacyURL: URL = "https://www.leveragers.com"
+    private(set) var privacyURL: URL = "https://www.leveragers.com/legal/politique-de-confidentialite"
     /// A URL where users can go read more about encryption in general.
     private(set) var encryptionURL: URL = "https://element.io/help#encryption"
     /// A URL where users can go read more about device verification..
