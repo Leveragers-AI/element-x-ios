@@ -68,6 +68,13 @@ targets:
         - $(KEYCHAIN_ACCESS_GROUP_IDENTIFIER)
 
     settings:
+      # Leveragers: release builds are signed by hand on the CI (App Store profile created through the
+      # App Store Connect API, Apple Distribution certificate), see .github/workflows/leveragers-testflight.yml.
+      configs:
+        Release:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: Apple Distribution
+          PROVISIONING_PROFILE_SPECIFIER: "Agents by Leveragers NSE App Store"
       base:
         PRODUCT_NAME: NSE
         PRODUCT_DISPLAY_NAME: $(APP_DISPLAY_NAME)

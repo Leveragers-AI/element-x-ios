@@ -118,7 +118,8 @@ targets:
         # Leveragers: the OAuth sign-in returns to agents.leveragers.com, which lists this app in its
         # apple-app-site-association file (webcredentials).
         - webcredentials:agents.leveragers.com
-        com.apple.developer.usernotifications.communication: true
+        # Leveragers: com.apple.developer.usernotifications.communication comes back with push notifications
+        # (capability to enable on the App ID first, then recreate the App Store profile).
         com.apple.security.app-sandbox: true
         com.apple.security.application-groups:
         - $(APP_GROUP_IDENTIFIER)
@@ -127,6 +128,13 @@ targets:
         - $(KEYCHAIN_ACCESS_GROUP_IDENTIFIER)
 
     settings:
+      # Leveragers: release builds are signed by hand on the CI (App Store profile created through the
+      # App Store Connect API, Apple Distribution certificate), see .github/workflows/leveragers-testflight.yml.
+      configs:
+        Release:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: Apple Distribution
+          PROVISIONING_PROFILE_SPECIFIER: "Agents by Leveragers App Store"
       base:
         PRODUCT_NAME: $(APP_NAME)
         PRODUCT_BUNDLE_IDENTIFIER: $(BASE_BUNDLE_IDENTIFIER)

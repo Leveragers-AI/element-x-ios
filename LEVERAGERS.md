@@ -11,7 +11,8 @@ depuis au moins 14 jours.
 | `0a13323` | Serveur `chat.leveragers.com` seul (un bouton sur l'écran d'accueil, pas de QR), connexion OAuth avec retour sur `agents.leveragers.com`, `client_uri` = `https://leveragers.com`, liens (copyright = ce code source, conditions et confidentialité = www.leveragers.com), passerelle de push prévue sur `chat.leveragers.com`, `Secrets.swift` vide (ni statistiques, ni Sentry, ni rapports de bug, ni cartes) | `ElementX/Sources/Application/Settings/AppSettings.swift`, `Components/Secrets/Secrets.swift`, `ElementX/Sources/Screens/Authentication/StartScreen/AuthenticationStartScreenViewModel.swift` |
 | `574b32b` | Marque : icône (logo Leveragers plein cadre, sans transparence), logo de l'écran d'accueil (`app-logo.svg`), fond bleu nuit `#0A082B`, écran d'accueil en apparence sombre, « Element X » → « Agents » dans les textes d'autorisation | `ElementX/Resources/AppIcon.icon/Assets/AppIcon.png`, `ElementX/Resources/Assets.xcassets/{images/app-logo.imageset,images/launch-background.imageset,colors/launch-color.colorset}`, `ElementX/Resources/Localizations/*/InfoPlist.strings`, `ElementX/Sources/Screens/Authentication/StartScreen/View/AuthenticationStartScreen.swift` |
 | `d2faa73` | Appels masqués (`isCallingEnabled = false`), entrée « Parcourir les salons » retirée | `RoomScreenModels.swift`, `RoomDetailsScreenModels.swift`, `RoomMemberDetailsScreenModels.swift`, `UserProfileScreenModels.swift`, `StartChatScreen.swift` (sous `ElementX/Sources/Screens/`) |
-| ce commit | Construction et envoi sur TestFlight par GitHub Actions ; les workflows d'Element sont retirés de la branche | `.github/workflows/*` |
+| `b81cfed` | Construction et envoi sur TestFlight par GitHub Actions ; les workflows d'Element sont retirés de la branche | `.github/workflows/*` |
+| ce commit | Signature manuelle en Release (profils App Store créés par l'API) ; droit « Communication Notifications » retiré tant qu'il n'y a pas de push (à remettre avec la passerelle de push, après l'avoir coché sur l'identifiant et recréé le profil) | `ElementX/SupportingFiles/target.yml`, `NSE/SupportingFiles/target.yml`, `ShareExtension/SupportingFiles/target.yml`, `.github/workflows/leveragers-testflight.yml`, `ElementX/SupportingFiles/ElementX.entitlements` |
 
 Restent, comme la politique de marque d'Element l'autorise : les mentions des vrais produits Element (Element Call,
 sons « Element », message sur l'ancienne application d'appel) et les mentions de droits d'auteur et de licence.
@@ -29,8 +30,12 @@ sous-domaine.
 ## Construction
 
 `.github/workflows/leveragers-testflight.yml`, sur l'étiquette de machine `xcode-27` de GitHub : `xcodegen`, puis
-`xcodebuild archive` et `-exportArchive` (destination `upload`) avec la clé API App Store Connect. Numéro de build =
-numéro d'exécution du workflow ; version = `MARKETING_VERSION` de `project.yml`. Certificats de développement et de
-distribution créés par l'API depuis hub2 (clés privées sur hub2 seulement), importés dans un trousseau jetable.
-Secrets du dépôt : `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8`, `SIGNING_DEV_P12_BASE64`, `SIGNING_DIST_P12_BASE64`,
-`SIGNING_P12_PASSWORD`. Les tests d'Element (unitaires, aperçus, UI) ne sont pas lancés par ce workflow.
+`xcodebuild archive` et `-exportArchive` en signature **manuelle** (configuration Release des trois cibles :
+certificat Apple Distribution, profils App Store « Agents by Leveragers App Store », « … NSE App Store »,
+« … Share App Store »), puis envoi sur TestFlight par `altool` (ou Transporter) avec la clé API App Store Connect.
+La signature automatique de Xcode avec la clé API a été refusée par Apple (401) au premier essai ; les appels
+classiques à l'API avec la même clé passent. Certificat et profils créés par l'API depuis hub2 (clé privée sur hub2
+seulement). Numéro de build = numéro d'exécution du workflow ; version = `MARKETING_VERSION` de `project.yml`.
+Secrets du dépôt : `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8`, `SIGNING_DIST_P12_BASE64`, `SIGNING_P12_PASSWORD`,
+`PROFILE_APP_BASE64`, `PROFILE_NSE_BASE64`, `PROFILE_SHARE_BASE64`. Les profils se recréent quand une capacité de
+l'identifiant change. Les tests d'Element (unitaires, aperçus, UI) ne sont pas lancés par ce workflow.
