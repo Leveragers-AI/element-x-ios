@@ -50,7 +50,8 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
             // The assumption here being that if you're running a custom app, your users will already be created.
             serverNameOrBaseURL = appSettings.accountProviders.count == 1 ? appSettings.accountProviders[0].serverNameOrBaseURL : nil
             showCreateAccountButton = false
-            showQRCodeLoginButton = isQRCodeScanningSupported
+            // Leveragers: a single "Continue" button that opens the chat server's sign-in page.
+            showQRCodeLoginButton = false
         } else if let provisioningParameters {
             // We only show the "Sign in to …" button when using a provisioning link.
             serverNameOrBaseURL = provisioningParameters.accountProvider
