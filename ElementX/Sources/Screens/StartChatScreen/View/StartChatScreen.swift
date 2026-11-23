@@ -51,7 +51,7 @@ struct StartChatScreen: View {
     @ViewBuilder
     private var mainContent: some View {
         createRoomSection
-        roomDirectorySearch
+        // Leveragers: no public room directory (public rooms are refused by our servers).
         inviteFriendsSection
         joinRoomByAddressSection
         usersSection

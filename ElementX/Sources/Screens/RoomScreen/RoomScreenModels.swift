@@ -56,7 +56,7 @@ struct RoomScreenViewState: BindableState {
     var canSendMessage = true
     
     /// Whether or not starting a call is supported.
-    var isCallingEnabled = true
+    var isCallingEnabled = false // Leveragers: calls are off
     /// Whether or not calls are using the experimental native implementation.
     var isNativeCallingEnabled = false
     /// Whether or not the user is allowed to join calls in this room.

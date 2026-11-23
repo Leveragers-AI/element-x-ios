@@ -62,7 +62,7 @@ struct RoomDetailsScreenViewState: BindableState {
     var canKickUsers = false
     var canBanUsers = false
     var notificationSettingsState: RoomDetailsNotificationSettingsState = .loading
-    var isCallingEnabled = true
+    var isCallingEnabled = false // Leveragers: calls are off
     var isNativeCallingEnabled = false
     var canJoinCall = false
     var pinnedEventsActionState = RoomDetailsScreenPinnedEventsActionState.loading
