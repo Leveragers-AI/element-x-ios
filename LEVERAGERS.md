@@ -39,4 +39,4 @@ classiques à l'API avec la même clé passent. Certificat et profils créés pa
 seulement). Numéro de build = numéro d'exécution du workflow ; version = `MARKETING_VERSION` de `project.yml`.
 Secrets du dépôt : `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8`, `SIGNING_DIST_P12_BASE64`, `SIGNING_P12_PASSWORD`,
 `PROFILE_APP_BASE64`, `PROFILE_NSE_BASE64`, `PROFILE_SHARE_BASE64`. Les profils se recréent quand une capacité de
-l'identifiant change. Les tests d'Element (unitaires, aperçus, UI) ne sont pas lancés par ce workflow.
+l'identifiant change. Les tests d'Element (unitaires, aperçus, UI) ne sont pas lancés par ce workflow. Cache entre les passages (comme la CI d'Element) : cache de compilation de Xcode (`COMPILATION_CACHE_ENABLE_CACHING`) et paquets Swift (`-clonedSourcePackagesDirPath ~/SourcePackages`), jeté au-delà de 6 Go.

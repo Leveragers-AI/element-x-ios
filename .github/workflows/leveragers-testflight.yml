@@ -69,6 +69,17 @@ jobs:
       - name: Generate the Xcode project
         run: xcodegen
 
+      # Xcode's compilation cache (as Element's own CI does) and the Swift packages, kept between
+      # runs: a fresh checkout invalidates DerivedData, these two survive it.
+      - name: Restore the build caches
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/Library/Developer/Xcode/CompilationCache.noindex
+            ~/SourcePackages
+          key: testflight-build-cache-${{ github.sha }}
+          restore-keys: testflight-build-cache-
+
       - name: Install the App Store Connect key, the certificate and the profiles
         env:
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
@@ -138,12 +149,31 @@ jobs:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/Agents.xcarchive" \
+            -clonedSourcePackagesDirPath "$HOME/SourcePackages" \
             -skipPackagePluginValidation \
             -skipMacroValidation \
             -quiet \
             DEVELOPMENT_TEAM="$TEAM_ID" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            COMPILATION_CACHE_ENABLE_CACHING=YES \
+            COMPILATION_CACHE_CAS_PATH="$HOME/Library/Developer/Xcode/CompilationCache.noindex" \
             OTHER_CODE_SIGN_FLAGS="--keychain $SIGNING_KEYCHAIN"
+
+      # Saved after a successful archive only. The cache grows with every change it absorbs:
+      # past 6 GB it is dropped so the next run starts cold (GitHub allows 10 GB per repository).
+      - name: Trim the build caches
+        run: |
+          size=$(du -sm ~/Library/Developer/Xcode/CompilationCache.noindex 2>/dev/null | cut -f1)
+          echo "compilation cache: ${size:-0} MB, packages: $(du -sm ~/SourcePackages 2>/dev/null | cut -f1) MB"
+          if [ "${size:-0}" -gt 6000 ]; then rm -rf ~/Library/Developer/Xcode/CompilationCache.noindex; echo "compilation cache dropped"; fi
+
+      - name: Save the build caches
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/Library/Developer/Xcode/CompilationCache.noindex
+            ~/SourcePackages
+          key: testflight-build-cache-${{ github.sha }}
 
       - name: Export the signed app
         run: |
