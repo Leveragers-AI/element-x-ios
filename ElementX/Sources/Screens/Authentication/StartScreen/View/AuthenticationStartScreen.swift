@@ -12,6 +12,7 @@ import SwiftUI
 /// The screen shown at the beginning of the onboarding flow.
 struct AuthenticationStartScreen: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.colorScheme) private var colorScheme
     
     @Bindable var context: AuthenticationStartScreenViewModel.Context
     
@@ -55,6 +56,8 @@ struct AuthenticationStartScreen: View {
                 AuthenticationStartScreenBackgroundImage()
             }
         }
+        // Leveragers: the background is our navy colour in both appearances, so keep light text and buttons on it.
+        .environment(\.colorScheme, context.viewState.mode != .addAccount ? .dark : colorScheme)
         .navigationTitle(context.viewState.navigationTitle)
         .navigationBarHidden(context.viewState.navigationBarHidden)
         .navigationBarTitleDisplayMode(.inline)
