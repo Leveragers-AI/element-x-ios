@@ -10,6 +10,11 @@ import SwiftUI
 
 /// The Leveragers palette, matching the "Leveragers" custom theme of our Element Web `config.json`.
 enum LeveragersTheme {
+    /// Whether the composer is a single floating capsule holding the attachment button, the text field and the send button.
+    static let hasFloatingComposer = true
+    /// Whether the timeline scrolls under the translucent navigation bar and composer (iOS 26).
+    static let hasTranslucentRoomBars = true
+    
     /// Overrides the Compound colours with the Leveragers palette in light appearance.
     static func apply() {
         for (keyPath, hex) in tokens {
@@ -19,7 +24,7 @@ enum LeveragersTheme {
             Color.compound.override(keyPath, with: lightOnly(0xEBE7E0, opacity: opacity, otherwise: Color.compound[dynamicMember: keyPath]))
         }
 
-        Color.compound.overrideBubbles(incoming: lightOnly(0xF0EBE3, otherwise: Color.compound._bgBubbleIncoming),
+        Color.compound.overrideBubbles(incoming: lightOnly(0xF1EDE6, otherwise: Color.compound._bgBubbleIncoming),
                                        outgoing: lightOnly(0xE7EDF6, otherwise: Color.compound._bgBubbleOutgoing))
     }
 
@@ -131,5 +136,12 @@ enum LeveragersTheme {
         darkEnvironment.colorScheme = .dark
         let dark = UIColor(Color(original.resolve(in: darkEnvironment)))
         return Color(UIColor { $0.userInterfaceStyle == .dark ? dark : light })
+    }
+}
+
+extension Font {
+    /// Sora, the display font of the Leveragers brand, for titles. Scales with Dynamic Type like the given text style.
+    static func leveragersDisplay(size: CGFloat, relativeTo textStyle: Font.TextStyle) -> Font {
+        .custom("Sora", size: size, relativeTo: textStyle).weight(.semibold)
     }
 }

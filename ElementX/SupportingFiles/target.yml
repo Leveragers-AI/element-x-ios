@@ -51,6 +51,7 @@ targets:
         UILaunchScreen:
           UIColorName: colors/launch-screen-color
         UIUserInterfaceStyle: Light # Leveragers: light only, like our Element Web theme.
+        UIAppFonts: [Sora.ttf] # Leveragers: display font of the brand (SIL OFL 1.1, see Resources/Fonts).
         CFBundleDisplayName: $(APP_DISPLAY_NAME)
         CFBundleName: $(APP_DISPLAY_NAME) # Leveragers: shown by iOS in the "Wants to Use … to Sign In" alert.
         CFBundleShortVersionString: $(MARKETING_VERSION)
