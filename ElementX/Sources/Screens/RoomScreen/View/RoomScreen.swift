@@ -297,6 +297,10 @@ struct RoomScreen: View {
         timelineContext.viewState.messageSelection.isActive
     }
     
+    private var hasTrailingToolbarItems: Bool {
+        isMessageSelectionActive || context.viewState.shouldShowCallButton || context.viewState.roomThreadListEnabled
+    }
+    
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         // .principal + .primaryAction works better than .navigation leading + trailing
@@ -306,7 +310,8 @@ struct RoomScreen: View {
                            roomAvatar: context.viewState.roomAvatar,
                            dmRecipientDetails: context.viewState.dmRecipientDetails,
                            roomHistorySharingState: context.viewState.roomHistorySharingState,
-                           mediaProvider: context.mediaProvider) {
+                           mediaProvider: context.mediaProvider,
+                           balancesBackButton: !hasTrailingToolbarItems) {
                 context.send(viewAction: .displayRoomDetails)
             }
             .disabled(isMessageSelectionActive) // The room details would cover the selection.

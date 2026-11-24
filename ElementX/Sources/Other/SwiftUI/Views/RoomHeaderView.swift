@@ -24,6 +24,8 @@ struct RoomHeaderView: View {
     var roomHistorySharingState: RoomHistorySharingState?
     
     let mediaProvider: MediaProviderProtocol?
+    /// Leveragers: offsets the back button so that the capsule is centred on screen, when nothing sits on the trailing side.
+    var balancesBackButton = false
     
     let action: () -> Void
     
@@ -38,6 +40,10 @@ struct RoomHeaderView: View {
                 .padding(.trailing, 6)
                 .glassEffect(.regular.interactive())
                 .roomHeaderAction(action)
+                // Leveragers: the capsule sits in the middle of the bar, like the titles of our other screens.
+                // Toolbar items get their ideal width, so ask for all of it.
+                .frame(idealWidth: .greatestFiniteMagnitude, maxWidth: .infinity)
+                .padding(.trailing, balancesBackButton ? 52 : 0)
         } else {
             // On iOS 18 and lower, the editor role causes an animation glitch with the back button whenever
             // you push a screen whilst the large title is visible on the room screen.
@@ -71,7 +77,7 @@ struct RoomHeaderView: View {
             HStack(spacing: 8) {
                 Text(roomName)
                     .lineLimit(1)
-                    .font(.compound.bodyMDSemibold)
+                    .font(.leveragersDisplay(size: 16, relativeTo: .headline))
                     .foregroundStyle(.compound.textPrimary)
                     .accessibilityIdentifier(A11yIdentifiers.roomScreen.name)
                 
@@ -85,10 +91,7 @@ struct RoomHeaderView: View {
                 VerificationBadge(verificationState: verificationState, size: .xSmall, relativeTo: .compound.bodyMDSemibold)
             }
             
-            if let historySharingIcon {
-                CompoundIcon(historySharingIcon, size: .xSmall, relativeTo: .compound.bodyMDSemibold)
-                    .foregroundStyle(.compound.iconInfoPrimary)
-            }
+            // Leveragers: no history sharing icon next to the room name.
         }
     }
     
@@ -110,11 +113,8 @@ struct RoomHeaderView: View {
 
 extension RoomHeaderView {
     static var toolbarRole: ToolbarRole {
-        if #available(iOS 26.0, *) {
-            .editor
-        } else {
-            .automatic
-        }
+        // Leveragers: the default role centres the header capsule, like the title of our other screens.
+        .automatic
     }
 }
 

@@ -145,7 +145,7 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
                 
                 HStack(alignment: .center, spacing: 4) {
                     Text(timelineItem.sender.displayName ?? timelineItem.sender.id)
-                        .font(.compound.bodyMDSemibold)
+                        .font(.compound.bodySMSemibold)
                         .foregroundStyle(.compound.decorativeColor(for: timelineItem.sender.id).text)
                     
                     if let statusEmoji = timelineItem.sender.status.displayed?.emoji {
@@ -337,7 +337,7 @@ private extension EventBasedTimelineItemProtocol {
     /// The insets for the full bubble content.
     /// Padding affecting just the "send info" should be added inside `TimelineItemSendInfoView`
     func bubbleInsets(hasContentScanningFailure: Bool) -> EdgeInsets {
-        let defaultInsets: EdgeInsets = .init(around: 8)
+        let defaultInsets = EdgeInsets(top: 10, leading: 14, bottom: 10, trailing: 14) // Leveragers: roomier bubbles.
         
         // The content scanner failure placeholder is always rendered inset within the critical bubble.
         if hasContentScanningFailure {

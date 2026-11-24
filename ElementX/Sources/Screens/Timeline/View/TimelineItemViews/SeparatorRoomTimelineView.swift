@@ -13,8 +13,8 @@ struct SeparatorRoomTimelineView: View {
     
     var body: some View {
         Text(timelineItem.timestamp.formattedDateSeparator())
-            .font(.compound.bodySMSemibold)
-            .foregroundColor(.compound.textPrimary)
+            .font(.compound.bodySM)
+            .foregroundColor(.compound.textSecondary)
             .frame(maxWidth: .infinity)
             .multilineTextAlignment(.center)
             .padding(.horizontal, 36.0)

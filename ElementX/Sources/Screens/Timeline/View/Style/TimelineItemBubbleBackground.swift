@@ -38,13 +38,26 @@ private struct TimelineItemBubbleBackgroundModifier: ViewModifier {
         content
             .padding(insets)
             .background(color)
-            .cornerRadius(12, corners: roundedCorners)
+            .clipShape(bubbleShape)
             .overlay {
                 if let borderColor {
-                    RoundedCornerShape(radius: 12, corners: roundedCorners)
+                    bubbleShape
                         .stroke(borderColor)
                 }
             }
+    }
+    
+    // Leveragers: generous corners, and softly rounded joints between the bubbles of a group.
+    private var bubbleShape: UnevenRoundedRectangle {
+        let corners = roundedCorners
+        func radius(_ corner: UIRectCorner) -> CGFloat {
+            corners.contains(corner) ? 20 : 6
+        }
+        return UnevenRoundedRectangle(topLeadingRadius: radius(.topLeft),
+                                      bottomLeadingRadius: radius(.bottomLeft),
+                                      bottomTrailingRadius: radius(.bottomRight),
+                                      topTrailingRadius: radius(.topRight),
+                                      style: .continuous)
     }
     
     private var roundedCorners: UIRectCorner {

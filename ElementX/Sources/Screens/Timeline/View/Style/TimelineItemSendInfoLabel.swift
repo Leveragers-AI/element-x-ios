@@ -148,9 +148,9 @@ private struct TimelineItemSendInfo {
         case .encryptionAuthenticity(let authenticity):
             authenticity.foregroundStyle
         case .encryptionForwarder:
-            .compound.textSecondary
+            .compound.iconTertiary
         case .none:
-            .compound.textSecondary
+            .compound.iconTertiary // Leveragers: a quiet time, the message stays first.
         }
     }
 }
@@ -164,7 +164,10 @@ private extension TimelineItemSendInfo {
         
         status = if case .sendingFailed = adjustedDeliveryStatus {
             .sendingFailed
-        } else if let authenticity = timelineItem.properties.encryptionAuthenticity {
+        } else if let authenticity = timelineItem.properties.encryptionAuthenticity,
+                  authenticity != .notGuaranteed(color: .gray) {
+            // Leveragers: no grey "authenticity not guaranteed" notice, shown for every message whose keys
+            // came from the backup on a new device. The other warnings stay.
             .encryptionAuthenticity(authenticity)
         } else if let forwarder = timelineItem.properties.encryptionForwarder {
             .encryptionForwarder(forwarder)
@@ -223,7 +226,7 @@ private extension EncryptionAuthenticity {
     var foregroundStyle: SwiftUI.Color {
         switch color {
         case .red: .compound.textCriticalPrimary
-        case .gray: .compound.textSecondary
+        case .gray: .compound.iconTertiary
         }
     }
 }
