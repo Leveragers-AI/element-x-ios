@@ -18,6 +18,8 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
     private let userIndicatorController: UserIndicatorControllerProtocol
     
     private let canReportProblem: Bool
+    /// Leveragers: whether the sign-in page should still open by itself, once the window is known.
+    private var shouldOpenSignInAutomatically: Bool
     
     private var actionsSubject: PassthroughSubject<AuthenticationStartScreenViewModelAction, Never> = .init()
     
@@ -39,6 +41,8 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
         self.appMediator = appMediator
         self.userIndicatorController = userIndicatorController
         canReportProblem = isBugReportServiceEnabled
+        // The UI tests drive the start screen themselves.
+        shouldOpenSignInAutomatically = appSettings.opensSignInAutomatically && !ProcessInfo.isRunningUITests
         
         let isQRCodeScanningSupported = !ProcessInfo.processInfo.isiOSAppOnMac
         
@@ -100,6 +104,7 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
         case .updateWindow(let window):
             guard state.window != window else { return }
             state.window = window
+            openSignInAutomaticallyIfNeeded()
         case .reportProblem:
             if canReportProblem {
                 actionsSubject.send(.reportProblem)
@@ -127,6 +132,14 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
     }
     
     // MARK: - Private
+    
+    /// Opens the sign-in page of our single server straight away on the welcome screen, only once:
+    /// cancelling it leaves the screen and its button to try again.
+    private func openSignInAutomaticallyIfNeeded() {
+        guard shouldOpenSignInAutomatically, state.mode == .welcome, state.serverNameOrBaseURL != nil else { return }
+        shouldOpenSignInAutomatically = false
+        Task { await login() }
+    }
     
     private func login(classicAppAccount: ClassicAppAccount? = nil) async {
         if let classicAppAccount {

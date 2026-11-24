@@ -136,6 +136,8 @@ final nonisolated class AppSettings: @unchecked Sendable {
     let hasSimplifiedSettings = true
     /// Leveragers: new rooms go in the first space by default and open to its members, without the access and address options.
     let hasSimplifiedRoomCreation = true
+    /// Leveragers: the start screen opens the chat server's sign-in page by itself, its button stays for a retry.
+    let opensSignInAutomatically = true
     /// Leveragers: the space last picked from the home screen title menu.
     @UserPreference
     var homeScreenSpaceID: String?
