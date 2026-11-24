@@ -53,7 +53,7 @@ struct StartChatScreen: View {
         createRoomSection
         // Leveragers: no public room directory (public rooms are refused by our servers).
         // Leveragers: no "Invite people to Agents" share link (accounts are created by Leveragers, not by invitation).
-        joinRoomByAddressSection
+        // Leveragers: no "Join room by address", rooms are joined by invitation only.
         usersSection
     }
     
