@@ -119,6 +119,8 @@ struct HomeScreenViewState: BindableState {
     
     /// Inline room list search is disabled when the dedicated global search tab is shown instead (see `UserSessionFlowCoordinator`).
     var isRoomListSearchEnabled = true
+    /// Whether the room list filters (Unread, Favourites…) are shown above the rooms.
+    var areFiltersEnabled = true
     
     var visibleRooms: [HomeScreenRoom] {
         if roomListMode == .skeletons || roomListMode == .awaitingCachedRooms {
@@ -148,7 +150,7 @@ struct HomeScreenViewState: BindableState {
     }
     
     var shouldShowFilters: Bool {
-        !bindings.isSearchFieldFocused && roomListMode == .rooms
+        areFiltersEnabled && !bindings.isSearchFieldFocused && roomListMode == .rooms
     }
     
     var shouldShowBanner: Bool {

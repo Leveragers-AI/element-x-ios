@@ -51,9 +51,10 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
                                            bindings: .init(filtersState: .init(userSettings: userSession.userSettings))),
                    mediaProvider: userSession.mediaProvider)
         
-        if userSettings.app.globalSearchEnabled {
+        if userSettings.app.globalSearchEnabled || userSettings.app.hasSimplifiedHomeScreen {
             state.isRoomListSearchEnabled = false
         }
+        state.areFiltersEnabled = !userSettings.app.hasSimplifiedHomeScreen
         
         userSession.clientProxy.userProfilePublisher
             .receive(on: DispatchQueue.main)
@@ -98,7 +99,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             .sink { [weak self] filters in
                 guard let self else { return }
                 
-                state.shouldShowSpaceFilters = !filters.isEmpty
+                state.shouldShowSpaceFilters = !filters.isEmpty && !userSettings.app.hasSimplifiedHomeScreen
                 
                 if let selectedSpaceFilter = spaceFilterSubject.value,
                    !filters.contains(selectedSpaceFilter) {

@@ -19,6 +19,8 @@ struct Application: App {
     private var appCoordinator: AppCoordinatorProtocol!
     
     init() {
+        LeveragersTheme.apply()
+
         if ProcessInfo.isRunningUITests {
             appCoordinator = UITestsAppCoordinator(appDelegate: appDelegate)
         } else if ProcessInfo.isRunningUnitTests {

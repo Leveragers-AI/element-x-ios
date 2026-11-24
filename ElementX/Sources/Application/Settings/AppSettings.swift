@@ -130,6 +130,8 @@ final nonisolated class AppSettings: @unchecked Sendable {
     private(set) var allowOtherAccountProviders = false
     /// Whether the components surrounding the app brand/logo should be hidden or not
     private(set) var hideBrandChrome = true
+    /// Leveragers: the home screen is a single chats list, without tabs, filters, search or space filters.
+    let hasSimplifiedHomeScreen = true
     
     /// The task identifier used for background app refresh. Also used in main target's the Info.plist
     let backgroundAppRefreshTaskIdentifier = "io.element.elementx.background.refresh"

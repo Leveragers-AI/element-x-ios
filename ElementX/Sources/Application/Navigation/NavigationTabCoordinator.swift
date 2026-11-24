@@ -401,7 +401,7 @@ private struct NavigationTabCoordinatorView<Tag: Hashable>: View {
                 Tab(value: module.details.tag, role: module.details.isSearch ? .search : nil) {
                     module.coordinator?.toPresentable()
                         .id(module.id)
-                        .toolbar(module.details.barVisibility(in: horizontalSizeClass), for: .tabBar)
+                        .toolbar(navigationTabCoordinator.tabModules.count > 1 ? module.details.barVisibility(in: horizontalSizeClass) : .hidden, for: .tabBar)
                 } label: {
                     Label {
                         Text(module.details.title)

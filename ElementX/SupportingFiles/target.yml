@@ -50,7 +50,9 @@ targets:
       properties:
         UILaunchScreen:
           UIColorName: colors/launch-color
+        UIUserInterfaceStyle: Light # Leveragers: light only, like our Element Web theme.
         CFBundleDisplayName: $(APP_DISPLAY_NAME)
+        CFBundleName: $(APP_DISPLAY_NAME) # Leveragers: shown by iOS in the "Wants to Use … to Sign In" alert.
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleURLTypes: [

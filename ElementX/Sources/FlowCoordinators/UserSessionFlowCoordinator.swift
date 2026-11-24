@@ -109,7 +109,8 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
         
         spacesTabDetails.navigationSplitCoordinator = spacesSplitCoordinator
         
-        if flowParameters.userSession.userSettings.app.globalSearchEnabled {
+        let appSettings = flowParameters.userSession.userSettings.app
+        if appSettings.globalSearchEnabled, !appSettings.hasSimplifiedHomeScreen {
             let searchCoordinator = SearchScreenCoordinator(parameters: .init(roomSummaryProvider: flowParameters.userSession.clientProxy.alternateRoomSummaryProvider,
                                                                               userSession: flowParameters.userSession,
                                                                               userIndicatorController: flowParameters.userIndicatorController))
@@ -135,10 +136,11 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
                                                               navigationStackCoordinator: onboardingStackCoordinator,
                                                               flowParameters: flowParameters)
         
-        var tabs: [NavigationTabCoordinator<HomeTab>.Tab] = [
-            .init(coordinator: chatsSplitCoordinator, details: chatsTabDetails),
-            .init(coordinator: spacesSplitCoordinator, details: spacesTabDetails)
-        ]
+        var tabs: [NavigationTabCoordinator<HomeTab>.Tab] = [.init(coordinator: chatsSplitCoordinator, details: chatsTabDetails)]
+        
+        if !appSettings.hasSimplifiedHomeScreen {
+            tabs.append(.init(coordinator: spacesSplitCoordinator, details: spacesTabDetails))
+        }
         
         if let searchTabNavigationStackCoordinator, let searchTabDetails {
             tabs.append(.init(coordinator: searchTabNavigationStackCoordinator, details: searchTabDetails))
