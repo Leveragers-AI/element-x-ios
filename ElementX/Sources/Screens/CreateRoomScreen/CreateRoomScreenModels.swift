@@ -33,6 +33,8 @@ struct CreateRoomScreenViewState: BindableState {
     let isKnockingFeatureEnabled: Bool
     var isPublicAccessAllowed = true
     let canSelectSpace: Bool
+    /// Whether the access options (and the address of a public room) are offered.
+    let showsAccessOptions: Bool
     var aliasLocalPart: String
     var editableSpaces: [SpaceServiceRoom] = []
     var bindings: CreateRoomScreenViewStateBindings

@@ -42,9 +42,11 @@ struct CreateRoomScreen: View {
             if context.viewState.canSelectSpace {
                 selectSpaceSection
             }
-            roomAccessSection
-            if !context.viewState.roomAccessType.isVisibilityPrivate {
-                roomAliasSection
+            if context.viewState.showsAccessOptions {
+                roomAccessSection
+                if !context.viewState.roomAccessType.isVisibilityPrivate {
+                    roomAliasSection
+                }
             }
         }
         .compoundList()

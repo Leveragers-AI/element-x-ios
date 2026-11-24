@@ -134,6 +134,8 @@ final nonisolated class AppSettings: @unchecked Sendable {
     let hasSimplifiedHomeScreen = true
     /// Leveragers: the settings hide the user status, location sharing, Labs and the developer options.
     let hasSimplifiedSettings = true
+    /// Leveragers: new rooms go in the first space by default and open to its members, without the access and address options.
+    let hasSimplifiedRoomCreation = true
     /// Leveragers: the space last picked from the home screen title menu.
     @UserPreference
     var homeScreenSpaceID: String?

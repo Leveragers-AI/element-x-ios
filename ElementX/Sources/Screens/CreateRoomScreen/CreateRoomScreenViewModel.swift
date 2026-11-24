@@ -67,6 +67,7 @@ class CreateRoomScreenViewModel: CreateRoomScreenViewModelType, CreateRoomScreen
                                                   serverName: userSession.clientProxy.userIDServerName ?? "",
                                                   isKnockingFeatureEnabled: userSession.userSettings.app.knockingEnabled,
                                                   canSelectSpace: canSelectSpace,
+                                                  showsAccessOptions: isSpace || !userSession.userSettings.app.hasSimplifiedRoomCreation,
                                                   aliasLocalPart: roomAliasNameFromRoomDisplayName(roomName: ""),
                                                   bindings: bindings)
         
@@ -78,6 +79,10 @@ class CreateRoomScreenViewModel: CreateRoomScreenViewModelType, CreateRoomScreen
         if canSelectSpace {
             Task {
                 state.editableSpaces = await userSession.clientProxy.spaceService.editableSpaces()
+                
+                if !state.showsAccessOptions, state.bindings.selectedSpace == nil {
+                    state.bindings.selectedSpace = state.editableSpaces.first
+                }
             }
         }
     }
@@ -206,12 +211,16 @@ class CreateRoomScreenViewModel: CreateRoomScreenViewModelType, CreateRoomScreen
             .store(in: &cancellables)
         
         context.$viewState
-            .map(\.availableAccessTypes)
+            .map { AccessOptions(availableAccessTypes: $0.availableAccessTypes, selectedSpaceID: $0.bindings.selectedSpace?.id) }
             .removeDuplicates()
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] availableAccessTypes in
+            .sink { [weak self] accessOptions in
                 guard let self else { return }
-                if !availableAccessTypes.contains(state.bindings.selectedAccessType) {
+                let availableAccessTypes = accessOptions.availableAccessTypes
+                if !state.showsAccessOptions {
+                    // Leveragers: open to the members of the space, or invite only without one.
+                    state.bindings.selectedAccessType = state.bindings.selectedSpace == nil ? .private : .spaceMembers
+                } else if !availableAccessTypes.contains(state.bindings.selectedAccessType) {
                     state.bindings.selectedAccessType = .private
                 }
             }
@@ -355,4 +364,10 @@ class CreateRoomScreenViewModel: CreateRoomScreenViewModelType, CreateRoomScreen
     private func hideLoadingIndicator() {
         userIndicatorController.retractIndicatorWithId(Self.loadingIndicatorIdentifier)
     }
+}
+
+/// What decides the selected access type: the options on offer, and the space for a simplified room creation.
+private struct AccessOptions: Equatable {
+    let availableAccessTypes: [CreateRoomScreenAccessType]
+    let selectedSpaceID: String?
 }
