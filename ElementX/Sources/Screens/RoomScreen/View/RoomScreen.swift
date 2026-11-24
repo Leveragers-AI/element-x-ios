@@ -9,6 +9,7 @@
 import Combine
 import Compound
 import SwiftUI
+import SwiftUIIntrospect
 import WysiwygComposer
 
 struct RoomScreen: View {
@@ -96,7 +97,8 @@ struct RoomScreen: View {
                     }
                 }
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+            // Leveragers: on iOS 26 a bar, so the timeline scrolls under the floating composer with a blurred edge.
+            .backportSafeAreaBar(edge: .bottom, spacing: 0) {
                 VStack(spacing: 0) {
                     RoomScreenFooterView(details: context.viewState.footerDetails,
                                          mediaProvider: context.mediaProvider) { action in
@@ -105,7 +107,6 @@ struct RoomScreen: View {
                     
                     composer
                         .padding(.top, 8)
-                        .background(Color.compound.bgCanvasDefault.ignoresSafeArea())
                         .environmentObject(timelineContext)
                         .environment(\.timelineContext, timelineContext)
                         // Make sure the reply header honours the hideTimelineMedia setting too.
@@ -116,6 +117,7 @@ struct RoomScreen: View {
                         TimelineMessageSelectionActionBar(context: timelineContext)
                     }
                 }
+                .modifier(LowFloatingComposerModifier())
             }
             .particleEffect(timelineContext.viewState.particleEffect)
             .navigationBarBackButtonHidden(isMessageSelectionActive)
@@ -124,7 +126,8 @@ struct RoomScreen: View {
             .navigationTitle(L10n.screenRoomTitle) // Hidden but used for back button text.
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
-            .toolbarBackground(.visible, for: .navigationBar) // Fix the toolbar's background.
+            // Fix the toolbar's background. Leveragers: on iOS 26 the timeline shows through, with a blurred edge.
+            .toolbarBackground(Compound.supportsGlass ? .automatic : .visible, for: .navigationBar)
             .overlay { loadingIndicator }
             .alert(item: $context.alertInfo)
             .timelineMediaPreview(viewModel: $context.mediaPreviewViewModel)
@@ -426,5 +429,36 @@ struct RoomScreen_Previews: PreviewProvider, TestablePreview {
     struct ViewModels {
         let room: RoomScreenViewModelProtocol
         let timeline: TimelineViewModelProtocol
+    }
+}
+
+/// Leveragers: lets the floating composer sit low, over the home indicator area, like the room view of Grok.
+/// Bars always keep their content above the home indicator, so the composer is moved down into it,
+/// except while the keyboard is shown.
+private struct LowFloatingComposerModifier: ViewModifier {
+    @State private var isKeyboardVisible = false
+    @State private var homeIndicatorHeight: CGFloat = 0
+    
+    /// The gap kept between the composer and the bottom of the screen.
+    private let bottomMargin: CGFloat = 18
+    
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *), LeveragersTheme.hasTranslucentRoomBars {
+            content
+                .padding(.bottom, isKeyboardVisible ? 0 : -max(0, homeIndicatorHeight - bottomMargin))
+                .introspect(.window, on: .supportedVersions) { window in
+                    if homeIndicatorHeight != window.safeAreaInsets.bottom {
+                        homeIndicatorHeight = window.safeAreaInsets.bottom
+                    }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                    isKeyboardVisible = true
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                    isKeyboardVisible = false
+                }
+        } else {
+            content
+        }
     }
 }

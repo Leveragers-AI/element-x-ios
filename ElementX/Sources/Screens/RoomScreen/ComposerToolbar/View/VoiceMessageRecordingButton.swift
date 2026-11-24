@@ -64,7 +64,11 @@ private struct VoiceMessageRecordingButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
     
     func makeBody(configuration: Configuration) -> some View {
-        if #available(iOS 26, *) {
+        if LeveragersTheme.hasFloatingComposer {
+            configuration.label
+                .background(.compound.bgSubtleSecondary, in: .circle)
+                .opacity(configuration.isPressed ? 0.6 : 1)
+        } else if #available(iOS 26, *) {
             if isEnabled {
                 configuration.label
                     .snapshotableGlassEffect(.regular.interactive(),

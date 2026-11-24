@@ -15,7 +15,7 @@ struct TimelineView: View {
     @State private var dragOver = false
     
     var body: some View {
-        TimelineViewRepresentable()
+        timeline
             .id(timelineContext.viewState.roomID)
             // It is tempting to inject these environment values last to avoid also injecting them into the sheets,
             // and that approach works great on iOS. But it doesn't work on macOS (as of 15.5) where the app goes 💥
@@ -81,8 +81,58 @@ struct TimelineView: View {
 }
 
 /// A table view wrapper that displays the timeline of a room.
+private extension TimelineView {
+    /// Leveragers: on iOS 26 the timeline runs under the navigation bar and the composer, which blur its edges.
+    @ViewBuilder
+    var timeline: some View {
+        if #available(iOS 26, *), LeveragersTheme.hasTranslucentRoomBars {
+            GeometryReader { geometry in
+                // Laid out within the safe area, the table itself reaches under the bars.
+                TimelineViewRepresentable(barInsets: geometry.safeAreaInsets)
+                    .padding(.top, geometry.safeAreaInsets.top)
+                    .padding(.bottom, geometry.safeAreaInsets.bottom)
+                    .overlay(alignment: .top) {
+                        BarEdgeBlur(edge: .top)
+                            .frame(height: geometry.safeAreaInsets.top + 24)
+                    }
+                    .overlay(alignment: .bottom) {
+                        BarEdgeBlur(edge: .bottom)
+                            .frame(height: geometry.safeAreaInsets.bottom + 24)
+                    }
+                    .ignoresSafeArea(.container, edges: .vertical)
+            }
+        } else {
+            TimelineViewRepresentable()
+        }
+    }
+}
+
+/// Leveragers: a blur that fades into the timeline where it scrolls under a bar.
+private struct BarEdgeBlur: View {
+    let edge: VerticalEdge
+    
+    var body: some View {
+        // A light blur and tint easing out in several steps, for a soft edge rather than a band.
+        Rectangle()
+            .fill(.ultraThinMaterial)
+            .overlay(Color.compound.bgCanvasDefault.opacity(0.25))
+            .mask {
+                LinearGradient(stops: [.init(color: .black, location: 0),
+                                       .init(color: .black.opacity(0.85), location: 0.3),
+                                       .init(color: .black.opacity(0.55), location: 0.55),
+                                       .init(color: .black.opacity(0.2), location: 0.8),
+                                       .init(color: .clear, location: 1)],
+                               startPoint: edge == .top ? .top : .bottom,
+                               endPoint: edge == .top ? .bottom : .top)
+            }
+            .allowsHitTesting(false)
+    }
+}
+
 struct TimelineViewRepresentable: UIViewControllerRepresentable {
     @EnvironmentObject private var viewModelContext: TimelineViewModel.Context
+    /// The space taken by the bars the timeline scrolls under, if any.
+    var barInsets = EdgeInsets()
     
     func makeUIViewController(context: Context) -> TimelineTableViewController {
         TimelineTableViewController(coordinator: context.coordinator,
@@ -96,6 +146,7 @@ struct TimelineViewRepresentable: UIViewControllerRepresentable {
     }
     
     func updateUIViewController(_ uiViewController: TimelineTableViewController, context: Context) {
+        uiViewController.barInsets = barInsets
         context.coordinator.update(tableViewController: uiViewController)
     }
     

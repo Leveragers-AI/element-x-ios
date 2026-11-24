@@ -211,7 +211,10 @@ private struct MessageComposerStyleModifier<Header: View>: ViewModifier {
     private let horizontalPadding: CGFloat = Compound.supportsGlass ? 16 : 12
     
     func body(content: Content) -> some View {
-        if #available(iOS 26, *) {
+        if LeveragersTheme.hasFloatingComposer {
+            // The floating capsule around the whole composer is the only background.
+            mainContent(content: content)
+        } else if #available(iOS 26, *) {
             if isEnabled {
                 mainContent(content: content)
                     .snapshotableGlassEffect(.regular.interactive(), // Doesn't need to be interactive but Apple does it 🤷‍♂️

@@ -38,6 +38,7 @@ struct ComposerToolbar: View {
     var body: some View {
         VStack(spacing: 8) {
             topBar
+                .modifier(FloatingComposerModifier(isActive: LeveragersTheme.hasFloatingComposer && !context.composerFormattingEnabled))
             
             if context.composerFormattingEnabled {
                 if verticalSizeClass != .compact,
@@ -51,7 +52,7 @@ struct ComposerToolbar: View {
         }
         .padding(.leading, 12)
         .padding(.trailing, 12)
-        .padding(.bottom, context.composerFormattingEnabled ? 8 : 12)
+        .padding(.bottom, context.composerFormattingEnabled ? 8 : (LeveragersTheme.hasTranslucentRoomBars ? 0 : 12))
         .background {
             if context.composerFormattingEnabled {
                 RoundedRectangle(cornerRadius: 20)
@@ -341,7 +342,11 @@ struct ComposerToolbarButtonStyle: ButtonStyle {
         @Environment(\.isEnabled) private var isEnabled
         
         func body(content: Content) -> some View {
-            if isEnabled {
+            if LeveragersTheme.hasFloatingComposer {
+                // A quiet circle inside the floating composer, the capsule carries the depth.
+                label(content: content)
+                    .background(.compound.bgSubtleSecondary, in: .circle)
+            } else if isEnabled {
                 label(content: content)
                     .snapshotableGlassEffect(.regular.interactive(),
                                              snapshotBackground: .compound.bgSubtleSecondary,
@@ -355,7 +360,7 @@ struct ComposerToolbarButtonStyle: ButtonStyle {
         func label(content: Content) -> some View {
             content
                 .foregroundStyle(isEnabled ? .compound.iconPrimary : .compound.iconDisabled)
-                .scaledPadding(10, relativeTo: .compound.headingLG)
+                .scaledPadding(LeveragersTheme.hasFloatingComposer ? 8 : 10, relativeTo: .compound.headingLG)
         }
     }
     
@@ -442,5 +447,25 @@ struct ComposerToolbar_Previews: PreviewProvider, TestablePreview {
         }
         .environmentObject(timelineViewModel.context)
         .previewDisplayName("Reply")
+    }
+}
+
+/// Leveragers: draws the composer as a single white capsule floating above the timeline.
+/// The layout stays the same when inactive so the text field keeps its focus when toggling formatting.
+private struct FloatingComposerModifier: ViewModifier {
+    let isActive: Bool
+    
+    private let shape = RoundedRectangle(cornerRadius: 28, style: .continuous)
+    
+    func body(content: Content) -> some View {
+        content
+            .padding(isActive ? 6 : 0)
+            .background {
+                shape
+                    .fill(Color.white)
+                    .overlay(shape.stroke(Color.compound.borderInteractiveSecondary, lineWidth: 0.5))
+                    .shadow(color: Color.compound.textPrimary.opacity(0.08), radius: 18, y: 6)
+                    .opacity(isActive ? 1 : 0)
+            }
     }
 }

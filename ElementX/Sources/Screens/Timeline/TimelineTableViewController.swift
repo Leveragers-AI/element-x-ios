@@ -200,6 +200,14 @@ class TimelineTableViewController: UIViewController {
         
         // The tableview is flipped to display the newest items at the bottom.
         tableView.transform = CGAffineTransform(scaleX: 1, y: -1)
+        // Leveragers: the insets under the bars are set by `barInsets`, flipped like the table.
+        tableView.contentInsetAdjustmentBehavior = .never
+        view.clipsToBounds = false
+        if #available(iOS 26, *) {
+            // The system edge effects don't follow the flip, `TimelineView` draws its own.
+            tableView.topEdgeEffect.isHidden = true
+            tableView.bottomEdgeEffect.isHidden = true
+        }
         view.addSubview(tableView)
         
         // Prevents XCUITest from invoking the diffable dataSource's cellProvider
@@ -259,19 +267,47 @@ class TimelineTableViewController: UIViewController {
         sendLastVisibleItemReadReceipt()
         
         guard !hasAppearedOnce else { return }
-        tableView.contentOffset.y = -1
+        tableView.contentOffset.y = newestContentOffset - 1
         hasAppearedOnce = true
         paginatePublisher.send()
+    }
+    
+    /// Leveragers: the heights of the navigation bar (top) and of the composer (bottom) the timeline scrolls under.
+    var barInsets = EdgeInsets() {
+        didSet {
+            guard barInsets != oldValue else { return }
+            let wasShowingNewest = tableView.contentOffset.y <= newestContentOffset
+            // The table is flipped: its top inset sits under the composer, its bottom inset under the navigation bar.
+            let insets = UIEdgeInsets(top: barInsets.bottom, left: 0, bottom: barInsets.top, right: 0)
+            tableView.contentInset = insets
+            tableView.verticalScrollIndicatorInsets = insets
+            layoutTableView()
+            if wasShowingNewest {
+                tableView.contentOffset.y = newestContentOffset - 1
+            }
+        }
+    }
+    
+    /// The content offset showing the newest item just above the composer.
+    private var newestContentOffset: CGFloat {
+        -tableView.contentInset.top
     }
     
     override func viewWillLayoutSubviews() {
         super.viewWillLayoutSubviews()
         
-        guard tableView.frame.size != view.frame.size else {
-            return
-        }
-        
-        tableView.frame = CGRect(origin: .zero, size: view.frame.size)
+        layoutTableView()
+    }
+    
+    /// Leveragers: the view controller stays within the safe area, so the cells never inherit the bars' safe area
+    /// (they would pad themselves with it). Only the table reaches out under the bars, by `barInsets`.
+    private func layoutTableView() {
+        let frame = CGRect(x: 0,
+                           y: -barInsets.top,
+                           width: view.frame.width,
+                           height: view.frame.height + barInsets.top + barInsets.bottom)
+        guard tableView.frame != frame else { return }
+        tableView.frame = frame
     }
     
     /// Configures a diffable data source for the timeline's table view.
@@ -456,7 +492,7 @@ class TimelineTableViewController: UIViewController {
         }
         if !isLive,
            paginationState.forward == .idle,
-           tableView.contentOffset.y < tableView.visibleSize.height {
+           tableView.contentOffset.y - newestContentOffset < tableView.visibleSize.height {
             coordinator.send(viewAction: .paginateForwards)
         }
     }
@@ -509,7 +545,7 @@ extension TimelineTableViewController: UITableViewDelegate {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             
-            let isScrolledToBottom = scrollView.contentOffset.y <= 0
+            let isScrolledToBottom = scrollView.contentOffset.y <= newestContentOffset
             
             // Only update the binding on changes to avoid needlessly recomputing the hierarchy when scrolling.
             if self.isScrolledToBottom != isScrolledToBottom {
@@ -527,8 +563,8 @@ extension TimelineTableViewController: UITableViewDelegate {
         }
         
         // We never want the table view to be fully at the bottom to allow the status bar tap to work properly
-        if scrollView.contentOffset.y == 0 {
-            scrollView.contentOffset.y = -1
+        if scrollView.contentOffset.y == newestContentOffset {
+            scrollView.contentOffset.y = newestContentOffset - 1
         }
         
         let velocity = scrollView.panGestureRecognizer.velocity(in: scrollView.superview).y
