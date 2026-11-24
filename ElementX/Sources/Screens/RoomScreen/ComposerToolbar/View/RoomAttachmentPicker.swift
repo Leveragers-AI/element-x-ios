@@ -37,12 +37,7 @@ struct RoomAttachmentPicker: View {
             }
             .accessibilityIdentifier(A11yIdentifiers.roomScreen.attachmentPickerTextFormatting)
             
-            Button {
-                context.send(viewAction: .attach(.poll))
-            } label: {
-                Label(L10n.screenRoomAttachmentSourcePoll, icon: \.polls)
-            }
-            .accessibilityIdentifier(A11yIdentifiers.roomScreen.attachmentPickerPoll)
+            // Leveragers: no polls, like our Element Web (its poll button is hidden too).
             
             if context.viewState.isLocationSharingEnabled {
                 Button {

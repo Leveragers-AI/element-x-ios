@@ -165,11 +165,7 @@ struct RoomDetailsScreen: View {
                     })
                     .disabled(context.viewState.pinnedEventsActionState.isLoading)
             
-            ListRow(label: .default(title: L10n.screenPollsHistoryTitle, icon: \.polls),
-                    kind: .navigationLink {
-                        context.send(viewAction: .processTapPolls)
-                    })
-                    .accessibilityIdentifier(A11yIdentifiers.roomDetailsScreen.pollsHistory)
+            // Leveragers: no polls history, polls aren't offered.
         }
     }
     
