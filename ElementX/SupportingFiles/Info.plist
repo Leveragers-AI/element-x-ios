@@ -89,7 +89,7 @@
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>
-		<string>colors/launch-color</string>
+		<string>colors/launch-screen-color</string>
 	</dict>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>

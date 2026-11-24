@@ -120,7 +120,7 @@ enum LeveragersTheme {
         (\.gradientSubtleStop6, 0)
     ]
     
-    // Screens forced dark (start screen on navy, media previews) keep Element's colours.
+    // Screens forced dark (media previews) keep Element's colours.
     // Nonisolated: SwiftUI resolves the dynamic colour on its async render thread.
     private nonisolated static func lightOnly(_ hex: UInt32, opacity: CGFloat = 1, otherwise original: Color) -> Color {
         let light = UIColor(red: CGFloat((hex >> 16) & 0xFF) / 255,
