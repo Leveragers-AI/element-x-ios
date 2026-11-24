@@ -13,7 +13,8 @@ depuis au moins 14 jours.
 | `d2faa73` | Appels masqués (`isCallingEnabled = false`), entrée « Parcourir les salons » retirée | `RoomScreenModels.swift`, `RoomDetailsScreenModels.swift`, `RoomMemberDetailsScreenModels.swift`, `UserProfileScreenModels.swift`, `StartChatScreen.swift` (sous `ElementX/Sources/Screens/`) |
 | `b81cfed` | Construction et envoi sur TestFlight par GitHub Actions ; les workflows d'Element sont retirés de la branche | `.github/workflows/*` |
 | `560f11d` | Signature manuelle en Release (profils App Store créés par l'API) ; droit « Communication Notifications » retiré le temps que la capacité soit cochée sur l'identifiant (remis au commit suivant) | `ElementX/SupportingFiles/target.yml`, `NSE/SupportingFiles/target.yml`, `ShareExtension/SupportingFiles/target.yml`, `.github/workflows/leveragers-testflight.yml`, `ElementX/SupportingFiles/ElementX.entitlements` |
-| ce commit | « Communication Notifications » remis (nom et photo de l'expéditeur dans les notifications) : capacité cochée sur `com.leveragers.agents`, profil App Store recréé | `ElementX/SupportingFiles/{target.yml,ElementX.entitlements}` |
+| `e4ef125` | « Communication Notifications » remis (nom et photo de l'expéditeur dans les notifications) : capacité cochée sur `com.leveragers.agents`, profil App Store recréé | `ElementX/SupportingFiles/{target.yml,ElementX.entitlements}` |
+| ce commit | Bouton « Inviter des personnes sur Agents » (lien de partage du profil) retiré de l'écran « + » : les comptes sont créés par Leveragers, pas par invitation | `ElementX/Sources/Screens/StartChatScreen/View/StartChatScreen.swift` |
 
 Restent, comme la politique de marque d'Element l'autorise : les mentions des vrais produits Element (Element Call,
 sons « Element », message sur l'ancienne application d'appel) et les mentions de droits d'auteur et de licence.
