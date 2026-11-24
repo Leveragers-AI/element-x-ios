@@ -86,6 +86,7 @@ extension ClientProxyMock {
         roomsToAwait = []
         
         isOnlyDeviceLeftReturnValue = .success(false)
+        webRoomListSectionsReturnValue = .success(.empty)
         hasDevicesToVerifyAgainstReturnValue = .success(true)
         accountURLActionReturnValue = "https://matrix.org/account"
         canDeactivateAccount = false

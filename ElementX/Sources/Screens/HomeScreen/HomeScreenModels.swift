@@ -41,6 +41,7 @@ enum HomeScreenViewAction {
     case confirmRecoveryKey
     case resetEncryption
     case skipRecoveryKeyConfirmation
+    case selectSpaceFilter(SpaceServiceFilter)
     case dismissNewSoundBanner
     case screenAppeared
     case multiAccountAnnouncementAppeared
@@ -116,6 +117,10 @@ struct HomeScreenViewState: BindableState {
     
     var shouldShowSpaceFilters = false
     var selectedSpaceFilter: SpaceServiceFilter?
+    /// The top level spaces offered by the title menu of the simplified home screen.
+    var spaceMenuFilters: [SpaceServiceFilter] = []
+    /// The rooms grouped like the Element Web room list. Empty when the list isn't sectioned.
+    var roomSections: [HomeScreenRoomSection] = []
     
     /// Inline room list search is disabled when the dedicated global search tab is shown instead (see `UserSessionFlowCoordinator`).
     var isRoomListSearchEnabled = true
@@ -231,6 +236,8 @@ struct HomeScreenRoom: Identifiable, Equatable {
     
     let isTombstoned: Bool
     
+    var isLowPriority = false
+    
     var displayedLastMessage: AttributedString? {
         if isTombstoned {
             AttributedString(L10n.screenRoomlistTombstonedRoomDescription)
@@ -257,6 +264,88 @@ struct HomeScreenRoom: Identifiable, Equatable {
                        statusEmoji: nil,
                        canonicalAlias: nil,
                        isTombstoned: false)
+    }
+}
+
+/// A group of rooms on the simplified home screen, in the same order as the Element Web room list.
+struct HomeScreenRoomSection: Identifiable, Equatable {
+    enum Kind: Hashable {
+        case invites, favourites, directMessages, rooms, lowPriority
+        /// A section created in Element Web.
+        case custom(tag: String, name: String)
+    }
+    
+    let kind: Kind
+    let rooms: [HomeScreenRoom]
+    
+    var id: Kind {
+        kind
+    }
+    
+    var title: String {
+        switch kind {
+        case .invites: L10n.screenRoomlistFilterInvites
+        case .favourites: L10n.screenRoomlistFilterFavourites
+        case .directMessages: UntranslatedL10n.screenRoomlistSectionDirectMessages
+        case .rooms: L10n.screenRoomlistFilterRooms
+        case .lowPriority: L10n.screenRoomlistFilterLowPriority
+        case .custom(_, let name): name
+        }
+    }
+    
+    /// Groups the rooms of the given space into Element Web's sections, each sorted alphabetically.
+    ///
+    /// Invites and direct messages are shown whatever the space, as they don't belong to one.
+    static func sections(from rooms: [HomeScreenRoom],
+                         in spaceFilter: SpaceServiceFilter?,
+                         webSections: WebRoomListSections) -> [HomeScreenRoomSection] {
+        let kinds = orderedKinds(for: webSections)
+        let grouped = Dictionary(grouping: rooms.filter { isRoom($0, in: spaceFilter) }) { kind(of: $0, among: kinds, webSections: webSections) }
+        
+        return kinds.compactMap { kind in
+            guard let rooms = grouped[kind], !rooms.isEmpty else { return nil }
+            return HomeScreenRoomSection(kind: kind, rooms: rooms.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending })
+        }
+    }
+    
+    // Invites and Favourites are pinned at the top and Low priority at the bottom, as on Element Web.
+    private static func orderedKinds(for webSections: WebRoomListSections) -> [Kind] {
+        let reorderable: [Kind] = webSections.orderedTags.compactMap { tag in
+            switch tag {
+            case WebRoomListSections.chatsTag: .rooms
+            case WebRoomListSections.directMessagesTag: .directMessages
+            default: webSections.customSectionNames[tag].map { .custom(tag: tag, name: $0) }
+            }
+        }
+        return [.invites, .favourites] + reorderable + [.lowPriority]
+    }
+    
+    private static func isRoom(_ room: HomeScreenRoom, in spaceFilter: SpaceServiceFilter?) -> Bool {
+        guard let spaceFilter, room.type == .room, !room.isDirect else { return true }
+        return spaceFilter.descendants.contains(room.roomID ?? room.id)
+    }
+    
+    // Same rule as Element Web: an invite wins, then the first section in display order whose tag
+    // the room carries, then direct messages, then Rooms.
+    private static func kind(of room: HomeScreenRoom, among kinds: [Kind], webSections: WebRoomListSections) -> Kind {
+        switch room.type {
+        case .invite, .knock:
+            return .invites
+        case .placeholder, .room:
+            break
+        }
+        
+        let customTags = webSections.roomTags[room.roomID ?? room.id] ?? []
+        let taggedKind = kinds.first { kind in
+            switch kind {
+            case .favourites: room.isFavourite
+            case .lowPriority: room.isLowPriority
+            case .custom(let tag, _): customTags.contains(tag)
+            case .invites, .directMessages, .rooms: false
+            }
+        }
+        
+        return taggedKind ?? (room.isDirect ? .directMessages : .rooms)
     }
 }
 
@@ -308,7 +397,8 @@ extension HomeScreenRoom {
                   avatar: summary.avatar,
                   statusEmoji: summary.statusEmoji,
                   canonicalAlias: summary.canonicalAlias,
-                  isTombstoned: summary.isTombstoned)
+                  isTombstoned: summary.isTombstoned,
+                  isLowPriority: summary.isLowPriority)
     }
 }
 

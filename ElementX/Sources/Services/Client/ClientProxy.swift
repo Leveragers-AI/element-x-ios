@@ -793,6 +793,55 @@ class ClientProxy: ClientProxyProtocol {
         }
     }
     
+    func webRoomListSections() async -> Result<WebRoomListSections, ClientProxyError> {
+        do {
+            guard let settingsJSON = try await client.accountData(eventType: WebRoomListSections.settingsEventType) else {
+                return .success(.empty)
+            }
+            
+            var sections = WebRoomListSections(settingsJSON: settingsJSON)
+            guard !sections.customSectionNames.isEmpty else {
+                return .success(sections)
+            }
+            
+            // The SDK drops the tags that aren't `m.*` or `u.*`, so ask the homeserver for each room's tags.
+            let session = try client.session()
+            let roomIDs = client.rooms().filter { $0.membership() == .joined }.map { $0.id() }
+            sections.roomTags = await Self.fetchCustomSectionTags(roomIDs: roomIDs, session: session)
+            return .success(sections)
+        } catch {
+            MXLog.error("Failed loading the Element Web room list sections with error: \(error)")
+            return .failure(.sdkError(error))
+        }
+    }
+    
+    private nonisolated static func fetchCustomSectionTags(roomIDs: [String], session: Session) async -> [String: Set<String>] {
+        guard let homeserverURL = URL(string: session.homeserverUrl) else { return [:] }
+        
+        return await withTaskGroup(of: (String, Set<String>)?.self) { group in
+            for roomID in roomIDs {
+                group.addTask {
+                    let url = homeserverURL.appending(components: "_matrix", "client", "v3", "user", session.userId, "rooms", roomID, "tags")
+                    var request = URLRequest(url: url)
+                    request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
+                    
+                    guard let (data, response) = try? await URLSession.shared.data(for: request),
+                          (response as? HTTPURLResponse)?.statusCode == 200 else {
+                        MXLog.warning("Failed loading the tags of a room")
+                        return nil
+                    }
+                    return (roomID, WebRoomListSections.customTags(fromTagsJSON: data))
+                }
+            }
+            
+            var roomTags = [String: Set<String>]()
+            for await case let (roomID, tags)? in group where !tags.isEmpty {
+                roomTags[roomID] = tags
+            }
+            return roomTags
+        }
+    }
+    
     func clearCaches() async -> Result<Void, ClientProxyError> {
         do {
             return try await .success(client.clearCaches(syncService: syncService))
@@ -1468,6 +1517,8 @@ private struct ClientProxyServices {
                                                   eventStringBuilder: eventStringBuilder,
                                                   name: "AllRooms",
                                                   shouldUpdateVisibleRange: true,
+                                                  // Leveragers: the sectioned home screen sorts and groups every room itself.
+                                                  roomListPageSize: userSettings.app.hasSimplifiedHomeScreen ? .max : 100,
                                                   notificationSettings: notificationSettings,
                                                   userSettings: userSettings)
         try await roomSummaryProvider.setRoomList(roomListService.allRooms())

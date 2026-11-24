@@ -1621,6 +1621,7 @@
 		F66BBBE51B258BBB0B918C68 /* MatrixRustSDK in Frameworks */ = {isa = PBXBuildFile; productRef = C79D91A7F9F378CECEF64B5A /* MatrixRustSDK */; };
 		F66BCCC825D6CA51724A94D0 /* MediaPlayerProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8A1F98AE670377B20679FF5 /* MediaPlayerProvider.swift */; };
 		F6767F17D538578B370DD805 /* TimelineItemBubbleBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE739A6836E86E3780748477 /* TimelineItemBubbleBackground.swift */; };
+		F6898ECB887EA6A0FD53F57C /* WebRoomListSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05190D096A7302D9FD28C163 /* WebRoomListSections.swift */; };
 		F6BF52CB027393EE03CEC523 /* TimelineMediaPreviewViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C1F000589F2CEE6B03ECFAB /* TimelineMediaPreviewViewModelTests.swift */; };
 		F6C343C6D1D12B0944E5EF14 /* preview_avatar_user.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 94A561C542596126DAE211AD /* preview_avatar_user.jpg */; };
 		F6D07D834279BE17D18A33E9 /* LocationSharingScreenViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED6D8956E554CEDFD4FE00D /* LocationSharingScreenViewModelTests.swift */; };
@@ -1847,6 +1848,7 @@
 		04DF593C3F7AF4B2FBAEB05D /* FileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileManager.swift; sourceTree = "<group>"; };
 		04EB6035C1F33F25F1EBFB7D /* RoomThreadListServiceProxyProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomThreadListServiceProxyProtocol.swift; sourceTree = "<group>"; };
 		0516C69708D5CBDE1A8E77EC /* RoomDirectorySearchProxyProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomDirectorySearchProxyProtocol.swift; sourceTree = "<group>"; };
+		05190D096A7302D9FD28C163 /* WebRoomListSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRoomListSections.swift; sourceTree = "<group>"; };
 		052A8C0B00FE8AD7C972F2A4 /* LocationSharingScreenViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSharingScreenViewModel.swift; sourceTree = "<group>"; };
 		052B2F924572AFD70B5F500E /* StartChatScreenViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartChatScreenViewModel.swift; sourceTree = "<group>"; };
 		0545AC444BEEA89FF8C509FD /* zh-Hant-TW */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant-TW"; path = "zh-Hant-TW.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
@@ -3647,6 +3649,7 @@
 				92E99C57D7F92ED16F73282C /* ElementCall */,
 				39557ADF21345E18F3865B9E /* Emojis */,
 				CA555F7C7CA382ACACF0D82B /* Keychain */,
+				3310F9617AA24BD0662B46A3 /* Leveragers */,
 				DCF22D1E268F1A36EC3431E4 /* LinkMetadata */,
 				90FD376E9373246E4925CE95 /* Location */,
 				79E560F5113ED25D172E550C /* Media */,
@@ -4288,6 +4291,14 @@
 				82F77DDA38D41A185D3536F4 /* View */,
 			);
 			path = ChatsSpaceFiltersScreen;
+			sourceTree = "<group>";
+		};
+		3310F9617AA24BD0662B46A3 /* Leveragers */ = {
+			isa = PBXGroup;
+			children = (
+				05190D096A7302D9FD28C163 /* WebRoomListSections.swift */,
+			);
+			path = Leveragers;
 			sourceTree = "<group>";
 		};
 		3331AF1BFF699CE25B734F9D /* NativeCall */ = {
@@ -9985,6 +9996,7 @@
 				CA12AE0DCD57D49CD96C699A /* WaveformCursorView.swift in Sources */,
 				63CDC201A5980F304F6D0A1C /* WaveformInteractionModifier.swift in Sources */,
 				B773ACD8881DB18E876D950C /* WaveformSource.swift in Sources */,
+				F6898ECB887EA6A0FD53F57C /* WebRoomListSections.swift in Sources */,
 				08CB4BD12CEEDE6AAE4A18DD /* WindowManager.swift in Sources */,
 				AE5AAD9E32511544FDFA5560 /* WindowManagerProtocol.swift in Sources */,
 			);

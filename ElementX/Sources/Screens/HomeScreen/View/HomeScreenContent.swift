@@ -52,8 +52,10 @@ struct HomeScreenContent: View {
                             if context.viewState.shouldShowEmptyFilterState {
                                 RoomListFiltersEmptyStateView(state: context.filtersState)
                                     .frame(maxWidth: .infinity, minHeight: max(0, geometry.size.height - topSectionHeight))
+                            } else if !context.viewState.roomSections.isEmpty {
+                                sectionedRoomList
                             } else {
-                                HomeScreenRoomList(context: context)
+                                HomeScreenRoomList(context: context, rooms: context.viewState.visibleRooms)
                                     .accessibilityAddTraits(.updatesFrequently)
                             }
                         } header: {
@@ -109,6 +111,22 @@ struct HomeScreenContent: View {
             .scrollBounceBehavior(context.viewState.roomListMode == .empty ? .basedOnSize : .automatic)
             .animation(.elementDefault, value: context.viewState.roomListMode)
             .animation(.none, value: context.viewState.visibleRooms)
+        }
+    }
+    
+    private var sectionedRoomList: some View {
+        ForEach(context.viewState.roomSections) { section in
+            Text(section.title)
+                .font(.compound.bodySMSemibold)
+                .foregroundStyle(.compound.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
+                .padding(.top, 20)
+                .padding(.bottom, 4)
+                .accessibilityAddTraits(.isHeader)
+            
+            HomeScreenRoomList(context: context, rooms: section.rooms)
+                .accessibilityAddTraits(.updatesFrequently)
         }
     }
     

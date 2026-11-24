@@ -56,6 +56,7 @@ nonisolated struct RoomSummary {
     let isMarkedUnread: Bool
     let isFavourite: Bool
     let isTombstoned: Bool
+    var isLowPriority = false
     
     var hasUnreadMessages: Bool {
         unreadMessagesCount > 0

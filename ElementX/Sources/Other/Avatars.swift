@@ -163,7 +163,9 @@ enum RoomAvatarSizeOnScreen {
         case .messageForwarding, .roomSelection,
              .spaceAddRooms:
             36
-        case .chats, .spaces, .spaceSettings,
+        case .chats: // Leveragers: compact room list.
+            44
+        case .spaces, .spaceSettings,
              .spaceAddRoomsSelected, .search:
             52
         case .joinRoom, .spaceHeader, .editSpaceDetails:

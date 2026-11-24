@@ -12,6 +12,7 @@ struct HomeScreenRoomList: View {
     @Environment(\.supportsMultipleWindows) private var supportsMultipleWindows
     
     @ObservedObject var context: HomeScreenViewModel.Context
+    let rooms: [HomeScreenRoom]
     
     var body: some View {
         // Hide the room list when the search bar is focused but the query is empty
@@ -23,7 +24,7 @@ struct HomeScreenRoomList: View {
     }
     
     private var content: some View {
-        ForEach(context.viewState.visibleRooms) { room in
+        ForEach(rooms) { room in
             switch room.type {
             case .placeholder:
                 HomeScreenRoomCell(room: room, isSelected: false, mediaProvider: context.mediaProvider, action: context.send)

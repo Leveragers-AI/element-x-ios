@@ -269,6 +269,9 @@ protocol ClientProxyProtocol: AnyObject {
     
     func fetchMediaPreviewConfiguration() async -> Result<MediaPreviewConfig?, ClientProxyError>
     
+    /// Leveragers: the room list sections created in Element Web, with the rooms in each of them.
+    func webRoomListSections() async -> Result<WebRoomListSections, ClientProxyError>
+    
     // MARK: - Ignored users
     
     func ignoreUser(_ userID: String) async -> Result<Void, ClientProxyError>

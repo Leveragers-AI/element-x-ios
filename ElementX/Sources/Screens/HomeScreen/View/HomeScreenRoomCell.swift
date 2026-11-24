@@ -20,7 +20,7 @@ struct HomeScreenRoomCell: View {
     let mediaProvider: MediaProviderProtocol!
     let action: (HomeScreenViewAction) -> Void
     
-    private let verticalInsets = 12.0
+    private let verticalInsets = 10.0
     private let horizontalInsets = 16.0
     
     var body: some View {
@@ -29,12 +29,11 @@ struct HomeScreenRoomCell: View {
                 action(.selectRoom(roomIdentifier: roomID))
             }
         } label: {
-            HStack(spacing: 16.0) {
+            HStack(spacing: 12.0) {
                 avatar
                 
                 content
                     .padding(.vertical, verticalInsets)
-                    .rowDivider(horizontalInsets: horizontalInsets)
             }
             .padding(.horizontal, horizontalInsets)
             .accessibilityElement(children: .combine)
@@ -82,7 +81,8 @@ struct HomeScreenRoomCell: View {
                     Text(String(statusEmoji))
                 }
             }
-            .font(.compound.bodyLGSemibold)
+            // Bold only when there's something new, so unread rooms stand out.
+            .font(room.isHighlighted ? .compound.bodyLGSemibold : .compound.bodyLG)
             .foregroundColor(.compound.textPrimary)
             .frame(maxWidth: .infinity, alignment: .leading)
             
@@ -97,8 +97,8 @@ struct HomeScreenRoomCell: View {
     private var footer: some View {
         HStack(alignment: .firstTextBaseline, spacing: 0) {
             ZStack(alignment: .topLeading) {
-                // Hidden text with 2 lines to maintain consistent height, scaling with dynamic text.
-                Text(" \n ")
+                // Hidden text to maintain consistent height, scaling with dynamic text.
+                Text(" ")
                     .lastMessageFormatting(hasFailed: false)
                     .hidden()
                     .environment(\.redactionReasons, []) // Always maintain consistent height
@@ -167,11 +167,20 @@ struct HomeScreenRoomCell: View {
     
     @ViewBuilder
     private var lastMessage: some View {
-        if let displayedLastMessage = room.displayedLastMessage {
-            Text(displayedLastMessage)
+        if let plainLastMessage {
+            Text(plainLastMessage)
                 .font(.compound.bodyMD)
                 .lastMessageFormatting(hasFailed: room.lastMessageState == .failed)
         }
+    }
+}
+
+private extension HomeScreenRoomCell {
+    /// A plain grey preview, without the bold sender name, keeps the list light.
+    var plainLastMessage: AttributedString? {
+        guard var message = room.displayedLastMessage else { return nil }
+        message.inlinePresentationIntent = nil
+        return message
     }
 }
 
@@ -189,7 +198,7 @@ struct HomeScreenRoomCellButtonStyle: ButtonStyle {
 private extension View {
     func lastMessageFormatting(hasFailed: Bool) -> some View {
         foregroundColor(hasFailed ? .compound.textCriticalPrimary : .compound.textSecondary)
-            .lineLimit(2)
+            .lineLimit(1)
             .multilineTextAlignment(.leading)
     }
 }

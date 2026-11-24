@@ -33,6 +33,7 @@ struct HomeScreen: View {
             .navigationBarTitleDisplayMode(Compound.supportsGlass ? .inline : .automatic)
             .toolbar { toolbar }
             .toolbarRole(Compound.supportsGlass ? .editor : .automatic)
+            .modifier(SpaceTitleMenuModifier { spaceMenuButtons })
             .background(Color.compound.bgCanvasDefault.ignoresSafeArea())
             .track(screen: .Home)
             .toolbarBloom(hasSearchBar: context.viewState.isRoomListSearchEnabled)
@@ -69,10 +70,24 @@ struct HomeScreen: View {
                     .buttonStyle(.borderless)
                 
                 if #available(iOS 26, *) {
-                    Text(title)
-                        .font(isInSidebar ? .compound.bodyLGSemibold : .compound.headingLGBold)
-                        .foregroundStyle(.compound.textPrimary)
-                        .minimumScaleFactor(isInSidebar ? 1 : 0.6) // Allow scaling down to bodyLG if needed.
+                    if context.viewState.spaceMenuFilters.isEmpty {
+                        titleText
+                    } else {
+                        Menu {
+                            spaceMenuButtons
+                        } label: {
+                            HStack(spacing: 4) {
+                                titleText
+                                    .truncationMode(.tail)
+                                CompoundIcon(\.chevronDown, size: .small, relativeTo: .compound.headingLGBold)
+                                    .foregroundStyle(.compound.iconSecondary)
+                            }
+                            // Toolbar titles aren't width constrained: keep long space names clear of the buttons.
+                            .frame(maxWidth: 240, alignment: .leading)
+                        }
+                        .menuIndicator(.hidden) // Our own chevron sits next to the title.
+                        .accessibilityHint(L10n.screenHomeTabSpaces)
+                    }
                 }
             }
         }
@@ -98,6 +113,28 @@ struct HomeScreen: View {
                 }
                 .matchedTransitionSource(id: NavigationTransitionSourceID.spaceFilters,
                                          in: navigationTransitionNamespace)
+            }
+        }
+    }
+    
+    private var titleText: some View {
+        Text(title)
+            .font(isInSidebar ? .compound.bodyLGSemibold : .compound.headingLGBold)
+            .foregroundStyle(.compound.textPrimary)
+            .lineLimit(1)
+            .minimumScaleFactor(isInSidebar ? 1 : 0.6) // Allow scaling down to bodyLG if needed.
+    }
+    
+    private var spaceMenuButtons: some View {
+        ForEach(context.viewState.spaceMenuFilters) { filter in
+            Button {
+                context.send(viewAction: .selectSpaceFilter(filter))
+            } label: {
+                if filter.id == context.viewState.selectedSpaceFilter?.id {
+                    Label(filter.room.name, icon: \.check)
+                } else {
+                    Text(filter.room.name)
+                }
             }
         }
     }
@@ -239,5 +276,19 @@ struct HomeScreen_Previews: PreviewProvider, TestablePreview {
                                    analyticsService: AnalyticsServiceMock(.init()),
                                    bugReportService: BugReportServiceMock(.init()),
                                    userIndicatorController: UserIndicatorControllerMock())
+    }
+}
+
+/// Offers the spaces from the system title menu before iOS 26 (from iOS 26 the title itself is a menu).
+/// iOS 26 shows a button for any title menu, even an empty one, hence the version check.
+private struct SpaceTitleMenuModifier<MenuContent: View>: ViewModifier {
+    @ViewBuilder let menuContent: () -> MenuContent
+    
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content
+        } else {
+            content.toolbarTitleMenu { menuContent() }
+        }
     }
 }

@@ -17,6 +17,9 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
     private let userSession: UserSessionProtocol
     private let availableSessionsPublisher: CurrentValuePublisher<[UserSessionDetails], Never>
     private let spaceFilterSubject: CurrentValueSubject<SpaceServiceFilter?, Never>
+    /// Leveragers: the sections created in Element Web, refreshed when the screen appears.
+    private var webRoomListSections = WebRoomListSections.empty
+    private var webRoomListSectionsLoadDate: Date?
     private let analyticsService: AnalyticsServiceProtocol
     private let bugReportService: BugReportServiceProtocol
     private let userSettings: UserSettings
@@ -101,6 +104,10 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
                 
                 state.shouldShowSpaceFilters = !filters.isEmpty && !userSettings.app.hasSimplifiedHomeScreen
                 
+                if userSettings.app.hasSimplifiedHomeScreen {
+                    updateSpaceMenu(with: filters)
+                }
+                
                 if let selectedSpaceFilter = spaceFilterSubject.value,
                    !filters.contains(selectedSpaceFilter) {
                     // Clear the spaces filter if the space has been left.
@@ -141,7 +148,14 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         
         spaceFilterSubject
             .receive(on: DispatchQueue.main)
-            .weakAssign(to: \.state.selectedSpaceFilter, on: self)
+            .sink { [weak self] spaceFilter in
+                guard let self else { return }
+                state.selectedSpaceFilter = spaceFilter
+                // The sectioned list filters by space itself.
+                if userSettings.app.hasSimplifiedHomeScreen {
+                    updateRooms()
+                }
+            }
             .store(in: &cancellables)
         
         bugReportService.lastCrashEventIDSubject
@@ -221,6 +235,9 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         case .screenAppeared:
             // Use a task otherwise the presentation isn't animated.
             Task { presentMultiAccountAnnouncementIfNeeded() }
+            if userSettings.app.hasSimplifiedHomeScreen {
+                Task { await loadWebRoomListSections() }
+            }
         case .multiAccountAnnouncementAppeared:
             MXLog.info("The multi-account announcement has been seen.")
             userSettings.app.hasSeenMultiAccountAnnouncement = true
@@ -230,6 +247,9 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             roomSummaryProvider?.updateVisibleRange(range)
         case .startChat:
             actionsSubject.send(.presentStartChatScreen)
+        case .selectSpaceFilter(let spaceFilter):
+            userSettings.app.homeScreenSpaceID = spaceFilter.id
+            spaceFilterSubject.send(spaceFilter)
         case .spaceFilters:
             if spaceFilterSubject.value != nil {
                 spaceFilterSubject.send(nil)
@@ -315,7 +335,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             roomSummaryProvider?.setFilter(.excludeAll)
         } else if state.bindings.isSearchFieldFocused {
             roomSummaryProvider?.setFilter(.search(query: state.bindings.searchQuery))
-        } else if let spaceFilter = spaceFilterSubject.value {
+        } else if let spaceFilter = spaceFilterSubject.value, !userSettings.app.hasSimplifiedHomeScreen {
             roomSummaryProvider?.setFilter(.rooms(roomsIDs: spaceFilter.descendants,
                                                   filters: state.bindings.filtersState.activeFilters.set))
         } else {
@@ -394,7 +414,44 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             rooms.append(room)
         }
         
-        state.rooms = rooms
+        if userSettings.app.hasSimplifiedHomeScreen {
+            let sections = HomeScreenRoomSection.sections(from: rooms, in: spaceFilterSubject.value, webSections: webRoomListSections)
+            state.roomSections = sections
+            state.rooms = sections.flatMap(\.rooms)
+        } else {
+            state.rooms = rooms
+        }
+    }
+    
+    /// Loads the sections created in Element Web, at most once a minute as it asks the homeserver for every room's tags.
+    private func loadWebRoomListSections() async {
+        if let webRoomListSectionsLoadDate, Date.now.timeIntervalSince(webRoomListSectionsLoadDate) < 60 {
+            return
+        }
+        webRoomListSectionsLoadDate = .now
+        
+        guard case let .success(sections) = await userSession.clientProxy.webRoomListSections(),
+              sections != webRoomListSections else {
+            return
+        }
+        
+        MXLog.info("Loaded \(sections.customSectionNames.count) Element Web sections for \(sections.roomTags.count) rooms.")
+        webRoomListSections = sections
+        updateRooms()
+    }
+    
+    /// Offers the top level spaces in the title menu and selects one like Element Web does:
+    /// the last one picked, or the first one.
+    private func updateSpaceMenu(with filters: [SpaceServiceFilter]) {
+        let topLevelFilters = filters.filter { $0.level == 0 }
+        state.spaceMenuFilters = topLevelFilters
+        
+        // Re-send the selected space too, so that its descendants stay up to date.
+        let selectedID = spaceFilterSubject.value?.id ?? userSettings.app.homeScreenSpaceID
+        let filter = topLevelFilters.first { $0.id == selectedID } ?? topLevelFilters.first
+        if let filter, filter != spaceFilterSubject.value {
+            spaceFilterSubject.send(filter)
+        }
     }
     
     private func markRoomAsFavourite(_ roomID: String, isFavourite: Bool) async {

@@ -4173,6 +4173,34 @@ nonisolated class ClientProxyMock: ClientProxyProtocol, @unchecked Sendable {
             return fetchMediaPreviewConfigurationReturnValue
         }
     }
+    //MARK: - webRoomListSections
+
+    private let webRoomListSectionsCallsCountLock = NSLock()
+    private nonisolated(unsafe) var webRoomListSectionsUnderlyingCallsCount = 0
+    var webRoomListSectionsCallsCount: Int {
+        get { webRoomListSectionsCallsCountLock.withLock { webRoomListSectionsUnderlyingCallsCount } }
+        set { webRoomListSectionsCallsCountLock.withLock { webRoomListSectionsUnderlyingCallsCount = newValue } }
+    }
+    var webRoomListSectionsCalled: Bool {
+        return webRoomListSectionsCallsCount > 0
+    }
+
+    private let webRoomListSectionsReturnValueLock = NSLock()
+    private nonisolated(unsafe) var webRoomListSectionsUnderlyingReturnValue: Result<WebRoomListSections, ClientProxyError>!
+    var webRoomListSectionsReturnValue: Result<WebRoomListSections, ClientProxyError>! {
+        get { webRoomListSectionsReturnValueLock.withLock { webRoomListSectionsUnderlyingReturnValue } }
+        set { webRoomListSectionsReturnValueLock.withLock { webRoomListSectionsUnderlyingReturnValue = newValue } }
+    }
+    nonisolated(unsafe) var webRoomListSectionsClosure: (() async -> Result<WebRoomListSections, ClientProxyError>)?
+
+    @concurrent func webRoomListSections() async -> Result<WebRoomListSections, ClientProxyError> {
+        webRoomListSectionsCallsCountLock.withLock { webRoomListSectionsUnderlyingCallsCount += 1 }
+        if let webRoomListSectionsClosure = webRoomListSectionsClosure {
+            return await webRoomListSectionsClosure()
+        } else {
+            return webRoomListSectionsReturnValue
+        }
+    }
     //MARK: - ignoreUser
 
     private let ignoreUserCallsCountLock = NSLock()
