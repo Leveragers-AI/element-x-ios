@@ -13,7 +13,8 @@ import SwiftUI
 struct CallInviteRoomTimelineView: View {
     var body: some View {
         Label {
-            Text(L10n.screenRoomTimelineLegacyCall)
+            // Leveragers: the translations name Element's app, ours is Agents.
+            Text(L10n.screenRoomTimelineLegacyCall.replacingOccurrences(of: "Element X", with: InfoPlistReader.main.productionAppName))
         } icon: {
             CompoundIcon(\.voiceCallSolid, size: .medium, relativeTo: .compound.bodyMD)
         }

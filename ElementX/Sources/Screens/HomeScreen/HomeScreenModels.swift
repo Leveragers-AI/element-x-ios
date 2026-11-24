@@ -286,7 +286,9 @@ struct HomeScreenRoomSection: Identifiable, Equatable {
         switch kind {
         case .invites: L10n.screenRoomlistFilterInvites
         case .favourites: L10n.screenRoomlistFilterFavourites
-        case .directMessages: UntranslatedL10n.screenRoomlistSectionDirectMessages
+        // Leveragers: looked up like translated strings so that the French "Messages privés" of
+        // fr.lproj/Untranslated.strings is used until Localazy has the key (UntranslatedL10n is English only).
+        case .directMessages: L10n.tr("Untranslated", "screen_roomlist_section_direct_messages")
         case .rooms: L10n.screenRoomlistFilterRooms
         case .lowPriority: L10n.screenRoomlistFilterLowPriority
         case .custom(_, let name): name
