@@ -20,7 +20,7 @@ struct HomeScreenRoomCell: View {
     let mediaProvider: MediaProviderProtocol!
     let action: (HomeScreenViewAction) -> Void
     
-    private let verticalInsets = 10.0
+    private let verticalInsets = 14.0
     private let horizontalInsets = 16.0
     
     var body: some View {
@@ -29,7 +29,7 @@ struct HomeScreenRoomCell: View {
                 action(.selectRoom(roomIdentifier: roomID))
             }
         } label: {
-            HStack(spacing: 12.0) {
+            HStack(spacing: 14.0) {
                 avatar
                 
                 content
@@ -82,14 +82,14 @@ struct HomeScreenRoomCell: View {
                 }
             }
             // Bold only when there's something new, so unread rooms stand out.
-            .font(room.isHighlighted ? .compound.bodyLGSemibold : .compound.bodyLG)
+            .font(room.isHighlighted ? .compound.bodyLGSemibold : .compound.bodyLG.weight(.medium))
             .foregroundColor(.compound.textPrimary)
             .frame(maxWidth: .infinity, alignment: .leading)
             
             if let timestamp = room.timestamp {
                 Text(timestamp)
-                    .font(room.isHighlighted ? .compound.bodySMSemibold : .compound.bodySM)
-                    .foregroundColor(room.isHighlighted ? .compound.textActionAccent : .compound.textSecondary)
+                    .font(.compound.bodyXS)
+                    .foregroundColor(room.isHighlighted ? .compound.textSecondary : .compound.iconTertiary)
             }
         }
     }
@@ -146,14 +146,10 @@ struct HomeScreenRoomCell: View {
                 }
                 
                 if room.badges.isDotShown {
-                    if room.isHighlighted, room.badges.notificationCount > 0 {
-                        NotificationCountBadge(count: Int(room.badges.notificationCount))
-                            .accessibilityLabel(L10n.a11yNotificationsNewMessages)
-                    } else {
-                        Circle()
-                            .frame(width: 12, height: 12)
-                            .accessibilityLabel(L10n.a11yNotificationsNewMessages)
-                    }
+                    // Leveragers: a single quiet dot, the bold name already says there's something new.
+                    Circle()
+                        .frame(width: 9, height: 9)
+                        .accessibilityLabel(L10n.a11yNotificationsNewMessages)
                 }
             }
             .foregroundColor(room.isHighlighted ? .compound.iconAccentPrimary : .compound.iconQuaternary)

@@ -63,6 +63,7 @@ struct HomeScreenContent: View {
                         }
                     }
                     .roomListSearchable(isEnabled: context.viewState.isRoomListSearchEnabled,
+                                        isAtBottom: context.viewState.hasSimplifiedHeader,
                                         isSearchFieldFocused: $context.isSearchFieldFocused,
                                         searchQuery: $context.searchQuery)
                 }
@@ -118,11 +119,11 @@ struct HomeScreenContent: View {
         ForEach(context.viewState.roomSections) { section in
             Text(section.title)
                 .font(.compound.bodySMSemibold)
-                .foregroundStyle(.compound.textSecondary)
+                .foregroundStyle(.compound.iconTertiary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 16)
-                .padding(.top, 20)
-                .padding(.bottom, 4)
+                .padding(.top, 28)
+                .padding(.bottom, 2)
                 .accessibilityAddTraits(.isHeader)
             
             HomeScreenRoomList(context: context, rooms: section.rooms)
@@ -192,14 +193,23 @@ struct HomeScreenContent: View {
 
 private extension View {
     @ViewBuilder
-    func roomListSearchable(isEnabled: Bool, isSearchFieldFocused: Binding<Bool>, searchQuery: Binding<String>) -> some View {
+    func roomListSearchable(isEnabled: Bool, isAtBottom: Bool, isSearchFieldFocused: Binding<Bool>, searchQuery: Binding<String>) -> some View {
         if isEnabled {
             isSearching(isSearchFieldFocused)
-                .searchable(text: searchQuery, placement: .navigationBarDrawer(displayMode: .always))
+                .searchable(text: searchQuery, placement: searchFieldPlacement(isAtBottom: isAtBottom))
                 .compoundSearchField()
                 .disableAutocorrection(true)
         } else {
             self
+        }
+    }
+    
+    /// Leveragers: on iOS 26 the search field floats at the bottom of the screen, within reach of the thumb.
+    private func searchFieldPlacement(isAtBottom: Bool) -> SearchFieldPlacement {
+        if #available(iOS 26, *), isAtBottom {
+            .toolbar
+        } else {
+            .navigationBarDrawer(displayMode: .always)
         }
     }
 }

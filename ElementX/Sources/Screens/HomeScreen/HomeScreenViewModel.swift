@@ -54,10 +54,12 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
                                            bindings: .init(filtersState: .init(userSettings: userSession.userSettings))),
                    mediaProvider: userSession.mediaProvider)
         
-        if userSettings.app.globalSearchEnabled || userSettings.app.hasSimplifiedHomeScreen {
+        // The simplified home screen has no search tab, so it keeps the room list search.
+        if userSettings.app.globalSearchEnabled, !userSettings.app.hasSimplifiedHomeScreen {
             state.isRoomListSearchEnabled = false
         }
         state.areFiltersEnabled = !userSettings.app.hasSimplifiedHomeScreen
+        state.hasSimplifiedHeader = userSettings.app.hasSimplifiedHomeScreen
         
         userSession.clientProxy.userProfilePublisher
             .receive(on: DispatchQueue.main)
@@ -415,7 +417,9 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         }
         
         if userSettings.app.hasSimplifiedHomeScreen {
-            let sections = HomeScreenRoomSection.sections(from: rooms, in: spaceFilterSubject.value, webSections: webRoomListSections)
+            // A search looks through every space, to find any room or conversation.
+            let spaceFilter = state.bindings.isSearchFieldFocused ? nil : spaceFilterSubject.value
+            let sections = HomeScreenRoomSection.sections(from: rooms, in: spaceFilter, webSections: webRoomListSections)
             state.roomSections = sections
             state.rooms = sections.flatMap(\.rooms)
         } else {

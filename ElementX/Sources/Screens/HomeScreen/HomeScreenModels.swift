@@ -126,6 +126,8 @@ struct HomeScreenViewState: BindableState {
     var isRoomListSearchEnabled = true
     /// Whether the room list filters (Unread, Favourites…) are shown above the rooms.
     var areFiltersEnabled = true
+    /// Whether the navigation bar only holds the settings and new room buttons around a small space menu.
+    var hasSimplifiedHeader = false
     
     var visibleRooms: [HomeScreenRoom] {
         if roomListMode == .skeletons || roomListMode == .awaitingCachedRooms {

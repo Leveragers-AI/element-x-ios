@@ -29,10 +29,11 @@ struct HomeScreen: View {
             .alert(item: $context.leaveRoomAlertItem,
                    actions: leaveRoomAlertActions,
                    message: leaveRoomAlertMessage)
-            .navigationTitle(title)
+            .navigationTitle(context.viewState.hasSimplifiedHeader ? "" : title)
             .navigationBarTitleDisplayMode(Compound.supportsGlass ? .inline : .automatic)
             .toolbar { toolbar }
-            .toolbarRole(Compound.supportsGlass ? .editor : .automatic)
+            // The editor role leading aligns the title, the large space title doesn't need it and it would stick to the rooms pushed above.
+            .toolbarRole(Compound.supportsGlass && !context.viewState.hasSimplifiedHeader ? .editor : .automatic)
             .modifier(SpaceTitleMenuModifier { spaceMenuButtons })
             .background(Color.compound.bgCanvasDefault.ignoresSafeArea())
             .track(screen: .Home)
@@ -62,6 +63,44 @@ struct HomeScreen: View {
     
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
+        if context.viewState.hasSimplifiedHeader {
+            largeTitleToolbar
+        } else {
+            defaultToolbar
+        }
+    }
+    
+    /// Leveragers: the settings and new room buttons around a small, secondary space menu.
+    @ToolbarContentBuilder
+    private var largeTitleToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            settingsButton
+                .buttonStyle(.borderless)
+        }
+        // The avatar is already round, a glass circle around it would crop it.
+        .backportSharedBackgroundVisibility(.hidden)
+        
+        ToolbarItem(placement: .principal) {
+            spaceMenu
+        }
+        
+        ToolbarItem(placement: .primaryAction) {
+            if #available(iOS 26, *) {
+                newRoomButton
+            } else {
+                newRoomButton
+                    .buttonStyle(.compound(.super, size: .toolbarIcon))
+            }
+        }
+        
+        if #available(iOS 26, *), context.viewState.isRoomListSearchEnabled {
+            // The room list search field, floating at the bottom of the screen.
+            DefaultToolbarItem(kind: .search, placement: .bottomBar)
+        }
+    }
+    
+    @ToolbarContentBuilder
+    private var defaultToolbar: some ToolbarContent {
         ToolbarItem(placement: Compound.supportsGlass ? .title : .navigationBarLeading) {
             HStack(spacing: isInSidebar ? 8 : 12) {
                 // The settings button is inside the title on iOS 26 to workaround a
@@ -136,6 +175,35 @@ struct HomeScreen: View {
                     Text(filter.room.name)
                 }
             }
+        }
+    }
+    
+    /// The selected space, small and secondary, opening the menu of spaces.
+    @ViewBuilder
+    private var spaceMenu: some View {
+        let label = HStack(spacing: 4) {
+            Text(title)
+                .font(.leveragersDisplay(size: 14, relativeTo: .subheadline))
+                .foregroundStyle(.compound.textSecondary)
+                .lineLimit(1)
+            
+            if !context.viewState.spaceMenuFilters.isEmpty {
+                CompoundIcon(\.chevronDown, size: .xSmall, relativeTo: .compound.bodySM)
+                    .foregroundStyle(.compound.iconTertiary)
+            }
+        }
+        .frame(maxWidth: 220)
+        
+        if context.viewState.spaceMenuFilters.isEmpty {
+            label
+        } else {
+            Menu {
+                spaceMenuButtons
+            } label: {
+                label
+            }
+            .menuIndicator(.hidden)
+            .accessibilityHint(L10n.screenHomeTabSpaces)
         }
     }
     
