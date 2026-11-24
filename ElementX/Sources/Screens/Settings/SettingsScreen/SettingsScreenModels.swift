@@ -55,6 +55,8 @@ struct SettingsScreenViewState: BindableState {
     var showSecuritySectionBadge = false
     
     let showAnalyticsSettings: Bool
+    let showLocationSharingSettings: Bool
+    let showLabs: Bool
     
     let isBugReportServiceEnabled: Bool
     

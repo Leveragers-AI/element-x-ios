@@ -32,14 +32,18 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
                                            showLinkNewDeviceButton: userSettings.app.linkNewDeviceEnabled,
                                            showAddAccountButton: userSettings.app.multiAccountEnabled,
                                            showAccountDeactivation: userSession.clientProxy.canDeactivateAccount,
-                                           showDeveloperOptions: userSettings.app.developerOptionsEnabled,
+                                           showDeveloperOptions: userSettings.app.developerOptionsEnabled && !userSettings.app.hasSimplifiedSettings,
                                            showAnalyticsSettings: userSettings.app.canPromptForAnalytics,
+                                           showLocationSharingSettings: !userSettings.app.hasSimplifiedSettings,
+                                           showLabs: !userSettings.app.hasSimplifiedSettings,
                                            isBugReportServiceEnabled: isBugReportServiceEnabled,
                                            navigationBarVisibility: isInSecondaryWindow ? .hidden : .automatic,
                                            bindings: .init(userSettings: userSettings)),
                    mediaProvider: userSession.mediaProvider)
         
+        let hasSimplifiedSettings = userSettings.app.hasSimplifiedSettings
         userSettings.app.developerOptionsEnabledPublisher
+            .map { $0 && !hasSimplifiedSettings }
             .weakAssign(to: \.state.showDeveloperOptions, on: self)
             .store(in: &cancellables)
         
@@ -79,7 +83,7 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             .store(in: &cancellables)
         
         Task {
-            if case .success(true) = await userSession.clientProxy.isUserStatusSupported() {
+            if !hasSimplifiedSettings, case .success(true) = await userSession.clientProxy.isUserStatusSupported() {
                 state.showUserStatusInput = true
             }
             await userSession.clientProxy.loadUserProfileIfNeeded()
@@ -144,6 +148,7 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             actionsSubject.send(.about)
             
         case .enableDeveloperOptions:
+            guard !userSettings.app.hasSimplifiedSettings else { return }
             userSettings.app.developerOptionsEnabled.toggle()
         case .developerOptions:
             actionsSubject.send(.developerOptions)

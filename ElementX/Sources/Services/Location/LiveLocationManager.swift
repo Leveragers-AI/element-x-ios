@@ -38,7 +38,10 @@ final class LiveLocationManager: NSObject, LiveLocationManagerProtocol, CLLocati
         
         // Configure CLLocationManager for continuous background tracking.
         self.locationManager.delegate = self
-        self.locationManager.allowsBackgroundLocationUpdates = true
+        // Leveragers: our app doesn't declare the location background mode (no location access at all),
+        // and enabling background updates without it raises an exception.
+        let backgroundModes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String] ?? []
+        self.locationManager.allowsBackgroundLocationUpdates = backgroundModes.contains("location")
         self.locationManager.showsBackgroundLocationIndicator = true
         
         // Since unpausing location updates is not trivial, let's always keep the location updates running

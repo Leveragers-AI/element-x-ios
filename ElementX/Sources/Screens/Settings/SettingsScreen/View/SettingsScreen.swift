@@ -191,11 +191,13 @@ struct SettingsScreen: View {
                     })
                     .accessibilityIdentifier(A11yIdentifiers.settingsScreen.screenLock)
             
-            ListRow(label: .default(title: L10n.commonLocationSharing,
-                                    icon: \.locationPin),
-                    kind: .navigationLink {
-                        context.send(viewAction: .locationSharing)
-                    })
+            if context.viewState.showLocationSharingSettings {
+                ListRow(label: .default(title: L10n.commonLocationSharing,
+                                        icon: \.locationPin),
+                        kind: .navigationLink {
+                            context.send(viewAction: .locationSharing)
+                        })
+            }
             
             if context.viewState.showAnalyticsSettings {
                 ListRow(label: .default(title: L10n.commonAnalytics,
@@ -206,11 +208,13 @@ struct SettingsScreen: View {
                         .accessibilityIdentifier(A11yIdentifiers.settingsScreen.analytics)
             }
             
-            ListRow(label: .default(title: L10n.screenAdvancedSettingsLabs,
-                                    icon: \.labs),
-                    kind: .navigationLink {
-                        context.send(viewAction: .labs)
-                    })
+            if context.viewState.showLabs {
+                ListRow(label: .default(title: L10n.screenAdvancedSettingsLabs,
+                                        icon: \.labs),
+                        kind: .navigationLink {
+                            context.send(viewAction: .labs)
+                        })
+            }
             
             ListRow(label: .default(title: L10n.commonAbout,
                                     icon: \.info),
