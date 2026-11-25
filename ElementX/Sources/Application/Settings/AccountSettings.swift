@@ -32,6 +32,10 @@ final nonisolated class AccountSettings: @unchecked Sendable {
     @UserPreference(defaultValue: Set<String>())
     var seenInvites: Set<String>
     
+    /// Leveragers: the room list sections last read from Element Web (JSON encoded), shown while they're read again.
+    @UserPreference
+    var webRoomListSectionsData: Data?
+    
     /// The rooms this account is sharing its live location in.
     @UserPreference(key: "liveLocationSharingTimeoutDatesByRoomID", defaultValue: [String: LiveLocationSession]())
     var liveLocationSharingSessionsByRoomID: [String: LiveLocationSession]

@@ -12,7 +12,7 @@ import Foundation
 /// Element Web stores the sections in its `im.vector.web.settings` account data
 /// (`RoomList.CustomSectionData` and `RoomList.OrderedCustomSections`) and adds each room
 /// to a section with an `element.io.section.<id>` room tag.
-nonisolated struct WebRoomListSections: Equatable, Sendable {
+nonisolated struct WebRoomListSections: Codable, Equatable, Sendable {
     static let settingsEventType = "im.vector.web.settings"
     static let customTagPrefix = "element.io.section."
     /// Element Web's synthetic tag for the section holding every other room.

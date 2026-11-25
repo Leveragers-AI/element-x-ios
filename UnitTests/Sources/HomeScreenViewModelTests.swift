@@ -8,6 +8,7 @@
 
 import Combine
 @testable import ElementX
+import Foundation
 import Testing
 
 @MainActor
@@ -26,6 +27,8 @@ final class HomeScreenViewModelTests {
     
     init() {
         userSettings = UserSettings.mock()
+        // Otherwise the rooms wait for Element Web's sections on the simplified home screen.
+        userSettings.account.webRoomListSectionsData = try? JSONEncoder().encode(WebRoomListSections.empty)
     }
     
     @Test
@@ -488,6 +491,19 @@ final class HomeScreenViewModelTests {
         
         // No awaiting, the mode must not need the subscription's async delivery.
         #expect(context.viewState.roomListMode == .rooms)
+    }
+    
+    @Test("On the first launch, the rooms wait for Element Web's sections before showing")
+    func roomListModeWaitsForTheWebSections() async throws {
+        userSettings.account.webRoomListSectionsData = nil
+        setupViewModel()
+        #expect(context.viewState.roomListMode == .skeletons)
+        
+        let deferred = deferFulfillment(context.$viewState) { $0.roomListMode == .rooms }
+        try await deferred.fulfill()
+        #expect(clientProxy.webRoomListSectionsCalled)
+        let storedData = try #require(userSettings.account.webRoomListSectionsData)
+        #expect(try JSONDecoder().decode(WebRoomListSections.self, from: storedData) == .empty)
     }
     
     @Test

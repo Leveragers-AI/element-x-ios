@@ -17,9 +17,15 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
     private let userSession: UserSessionProtocol
     private let availableSessionsPublisher: CurrentValuePublisher<[UserSessionDetails], Never>
     private let spaceFilterSubject: CurrentValueSubject<SpaceServiceFilter?, Never>
-    /// Leveragers: the sections created in Element Web, refreshed when the screen appears.
-    private var webRoomListSections = WebRoomListSections.empty
+    /// Leveragers: the sections created in Element Web, refreshed when the screen appears and when rooms are added or removed.
+    private var webRoomListSections: WebRoomListSections
     private var webRoomListSectionsLoadDate: Date?
+    private var isLoadingWebRoomListSections = false
+    private var needsWebRoomListSectionsReload = false
+    /// Whether the sections were read with the rooms known, so that the list can be grouped without the wrong sections.
+    private var hasKnownWebRoomListSections: Bool
+    private var hasStoppedWaitingForWebRoomListSections = false
+    private var webRoomListSectionsWaitTask: Task<Void, Never>?
     private let analyticsService: AnalyticsServiceProtocol
     private let bugReportService: BugReportServiceProtocol
     private let userSettings: UserSettings
@@ -49,6 +55,10 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         spaceFilterSubject = CurrentValueSubject<SpaceServiceFilter?, Never>(nil)
         
         roomSummaryProvider = userSession.clientProxy.roomSummaryProvider
+        
+        let storedWebRoomListSections = userSettings.account.webRoomListSectionsData.flatMap { try? JSONDecoder().decode(WebRoomListSections.self, from: $0) }
+        webRoomListSections = storedWebRoomListSections ?? .empty
+        hasKnownWebRoomListSections = storedWebRoomListSections != nil
         
         super.init(initialViewState: .init(userProfile: userSession.clientProxy.userProfilePublisher.value,
                                            bindings: .init(filtersState: .init(userSettings: userSession.userSettings))),
@@ -176,6 +186,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             .store(in: &cancellables)
         
         setupRoomListSubscriptions()
+        setupWebRoomListSectionsSubscription()
         
         updateRooms()
         
@@ -355,7 +366,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
     private func updateRoomListMode(with roomSummaryProviderState: RoomSummaryProviderState, hasRooms: Bool) {
         let isFiltering = state.bindings.filtersState.isFiltering || state.selectedSpaceFilter != nil || state.bindings.isSearchFieldFocused
         
-        let roomListMode: HomeScreenRoomListMode = if !roomSummaryProviderState.isLoaded {
+        var roomListMode: HomeScreenRoomListMode = if !roomSummaryProviderState.isLoaded {
             .skeletons // Still loading.
         } else if roomSummaryProviderState.totalNumberOfRooms == 0 {
             .empty // Loaded, there are no rooms at all.
@@ -365,6 +376,10 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             state.roomListMode // Loaded but nothing published yet, flipping to .rooms would flash an empty list.
         } else {
             .rooms
+        }
+        
+        if roomListMode == .rooms, !isFiltering, isWaitingForWebRoomListSections {
+            roomListMode = .skeletons
         }
         
         guard roomListMode != state.roomListMode else {
@@ -438,12 +453,69 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         state.hasSimplifiedHeader = isSimplified
     }
     
-    /// Loads the sections created in Element Web, at most once a minute as it asks the homeserver for every room's tags.
-    private func loadWebRoomListSections() async {
-        if let webRoomListSectionsLoadDate, Date.now.timeIntervalSince(webRoomListSectionsLoadDate) < 60 {
+    /// Leveragers: on the first launch, the rooms wait for Element Web's sections rather than showing up in the wrong ones.
+    private var isWaitingForWebRoomListSections: Bool {
+        guard userSettings.app.hasSimplifiedHomeScreen, !hasKnownWebRoomListSections, !hasStoppedWaitingForWebRoomListSections else {
+            return false
+        }
+        
+        stopWaitingForWebRoomListSectionsLater()
+        return true
+    }
+    
+    // A slow or failing homeserver mustn't hide the rooms for long.
+    private func stopWaitingForWebRoomListSectionsLater() {
+        guard webRoomListSectionsWaitTask == nil else { return }
+        webRoomListSectionsWaitTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(5))
+            guard let self, !Task.isCancelled else { return }
+            hasStoppedWaitingForWebRoomListSections = true
+            refreshRoomListMode()
+        }
+    }
+    
+    private func refreshRoomListMode() {
+        guard let roomSummaryProvider else { return }
+        updateRoomListMode(with: roomSummaryProvider.statePublisher.value,
+                           hasRooms: !roomSummaryProvider.roomListPublisher.value.isEmpty)
+    }
+    
+    /// Reads the sections again once the rooms settle: Element Web's settings arrive with the first sync, and a new room needs its section.
+    private func setupWebRoomListSectionsSubscription() {
+        guard userSettings.app.hasSimplifiedHomeScreen, let roomSummaryProvider else { return }
+        
+        roomSummaryProvider.roomListPublisher
+            .map { Set($0.map(\.id)) }
+            .removeDuplicates()
+            .filter { !$0.isEmpty }
+            .debounce(for: .seconds(1), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in
+                Task { await self?.loadWebRoomListSections(force: true) }
+            }
+            .store(in: &cancellables)
+    }
+    
+    /// Loads the sections created in Element Web. Unless forced, at most once a minute as it asks the homeserver for every room's tags.
+    private func loadWebRoomListSections(force: Bool = false) async {
+        guard !isLoadingWebRoomListSections else {
+            needsWebRoomListSectionsReload = needsWebRoomListSectionsReload || force
+            return
+        }
+        if !force, let webRoomListSectionsLoadDate, Date.now.timeIntervalSince(webRoomListSectionsLoadDate) < 60 {
             return
         }
         webRoomListSectionsLoadDate = .now
+        isLoadingWebRoomListSections = true
+        defer {
+            isLoadingWebRoomListSections = false
+            if needsWebRoomListSectionsReload {
+                needsWebRoomListSectionsReload = false
+                Task { await loadWebRoomListSections(force: true) }
+            }
+        }
+        
+        // Before the first sync, neither the rooms nor Element Web's settings are known yet.
+        let hasRooms = !(roomSummaryProvider?.roomListPublisher.value.isEmpty ?? true)
         
         guard case var .success(sections) = await userSession.clientProxy.webRoomListSections() else {
             // Try again the next time the screen appears.
@@ -460,13 +532,20 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             webRoomListSectionsLoadDate = nil
         }
         
-        guard sections != webRoomListSections else {
-            return
+        if hasRooms {
+            userSettings.account.webRoomListSectionsData = try? JSONEncoder().encode(sections)
         }
         
-        MXLog.info("Loaded \(sections.customSectionNames.count) Element Web sections for \(sections.roomTags.count) rooms, \(sections.unreadableRoomIDs.count) unreadable.")
-        webRoomListSections = sections
-        updateRooms()
+        if sections != webRoomListSections {
+            MXLog.info("Loaded \(sections.customSectionNames.count) Element Web sections for \(sections.roomTags.count) rooms, \(sections.unreadableRoomIDs.count) unreadable.")
+            webRoomListSections = sections
+            updateRooms()
+        }
+        
+        if hasRooms, !hasKnownWebRoomListSections {
+            hasKnownWebRoomListSections = true
+            refreshRoomListMode()
+        }
     }
     
     /// Offers the top level spaces in the title menu and selects one like Element Web does:
