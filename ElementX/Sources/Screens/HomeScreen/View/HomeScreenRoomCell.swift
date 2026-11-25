@@ -82,7 +82,7 @@ struct HomeScreenRoomCell: View {
                 }
             }
             // Bold only when there's something new, so unread rooms stand out.
-            .font(room.isHighlighted ? .compound.bodyMDSemibold : .compound.bodyMD)
+            .font(room.isHighlighted ? .compound.bodyLGSemibold : .compound.bodyLG)
             .foregroundColor(.compound.textPrimary)
             .frame(maxWidth: .infinity, alignment: .leading)
             
@@ -99,7 +99,7 @@ struct HomeScreenRoomCell: View {
             ZStack(alignment: .topLeading) {
                 // Hidden text to maintain consistent height, scaling with dynamic text.
                 Text(" ")
-                    .font(.compound.bodySM)
+                    .font(.compound.bodyMD)
                     .lastMessageFormatting(hasFailed: false)
                     .hidden()
                     .environment(\.redactionReasons, []) // Always maintain consistent height
@@ -166,7 +166,7 @@ struct HomeScreenRoomCell: View {
     private var lastMessage: some View {
         if let plainLastMessage {
             Text(plainLastMessage)
-                .font(.compound.bodySM)
+                .font(.compound.bodyMD)
                 .lastMessageFormatting(hasFailed: room.lastMessageState == .failed)
         }
     }
