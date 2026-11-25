@@ -53,7 +53,8 @@ struct VoiceMessagePreviewComposer: View {
         .onChange(of: isDragging) { _, newValue in
             onScrubbing(newValue)
         }
-        .padding(.vertical, Compound.supportsGlass ? 7 : 4)
+        // Leveragers: the height of a single line of text, so the buttons stay centred in the floating composer.
+        .padding(.vertical, LeveragersTheme.hasFloatingComposer ? 0 : (Compound.supportsGlass ? 7 : 4))
         .padding(.horizontal, Compound.supportsGlass ? 8 : 6)
         .padding(.trailing, Compound.supportsGlass ? 8 : 0)
     }

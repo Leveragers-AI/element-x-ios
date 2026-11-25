@@ -14,7 +14,8 @@ struct VoiceMessageTrashButton: View {
     var body: some View {
         if #available(iOS 26, *) {
             Button(role: .destructive, action: action) {
-                CompoundIcon(\.delete, size: .medium, relativeTo: .compound.headingLG)
+                // Leveragers: the same 32pt as the other buttons of the floating composer.
+                CompoundIcon(\.delete, size: LeveragersTheme.hasFloatingComposer ? .small : .medium, relativeTo: .compound.headingLG)
                     .modifier(GlassStyle())
                     .compositingGroup()
             }
@@ -47,7 +48,7 @@ struct VoiceMessageTrashButton: View {
         private func label(content: Content) -> some View {
             content
                 .foregroundStyle(isEnabled ? .compound.iconOnSolidPrimary : .compound.iconDisabled)
-                .scaledPadding(10, relativeTo: .compound.headingLG)
+                .scaledPadding(LeveragersTheme.hasFloatingComposer ? 6 : 10, relativeTo: .compound.headingLG)
         }
     }
 }

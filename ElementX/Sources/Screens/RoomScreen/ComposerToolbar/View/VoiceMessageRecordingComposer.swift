@@ -15,8 +15,9 @@ struct VoiceMessageRecordingComposer: View {
     
     var body: some View {
         VoiceMessageRecordingView(recorderState: recorderState)
-            .padding(.vertical, Compound.supportsGlass ? 14 : 8)
-            .padding(.horizontal, Compound.supportsGlass ? 16 : 12)
+            // Leveragers: the height of a single line of text, so the buttons stay centred in the floating composer.
+            .padding(.vertical, LeveragersTheme.hasFloatingComposer ? 7 : (Compound.supportsGlass ? 14 : 8))
+            .padding(.horizontal, LeveragersTheme.hasFloatingComposer ? 12 : (Compound.supportsGlass ? 16 : 12))
     }
 }
 
