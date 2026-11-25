@@ -49,7 +49,9 @@ struct HomeScreenContent: View {
                 case .rooms:
                     LazyVStack(spacing: 0) {
                         Section {
-                            if context.viewState.shouldShowEmptyFilterState {
+                            if context.viewState.bindings.isSearchFieldFocused, context.viewState.visibleRooms.isEmpty {
+                                searchEmptyState
+                            } else if context.viewState.shouldShowEmptyFilterState {
                                 RoomListFiltersEmptyStateView(state: context.filtersState)
                                     .frame(maxWidth: .infinity, minHeight: max(0, geometry.size.height - topSectionHeight))
                             } else if !context.viewState.roomSections.isEmpty {
@@ -112,6 +114,26 @@ struct HomeScreenContent: View {
             .scrollBounceBehavior(context.viewState.roomListMode == .empty ? .basedOnSize : .automatic)
             .animation(.elementDefault, value: context.viewState.roomListMode)
             .animation(.none, value: context.viewState.visibleRooms)
+        }
+    }
+    
+    /// Leveragers: like Element X's search screen, an invitation to search, then a message when nothing matches.
+    @ViewBuilder
+    private var searchEmptyState: some View {
+        if context.viewState.bindings.searchQuery.isEmpty {
+            TitleAndIcon(title: L10n.screenSearchEmptyStateTitle,
+                         subtitle: L10n.tr("Untranslated", "screen_roomlist_search_empty_state_message"),
+                         icon: \.search,
+                         iconStyle: .defaultSolid)
+                .frame(maxWidth: .infinity)
+                .padding(40)
+        } else {
+            TitleAndIcon(title: L10n.commonNoResults,
+                         subtitle: L10n.screenSearchNoResultsMessage(context.viewState.bindings.searchQuery),
+                         icon: \.search,
+                         iconStyle: .defaultSolid)
+                .frame(maxWidth: .infinity)
+                .padding(40)
         }
     }
     

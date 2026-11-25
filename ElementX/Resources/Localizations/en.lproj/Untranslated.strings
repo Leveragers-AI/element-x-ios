@@ -1,3 +1,4 @@
 "untranslated" = "Untranslated";
 "screen_roomlist_section_direct_messages" = "Direct messages";
 "screen_roomlist_brand_tagline" = "by Leveragers";
+"screen_roomlist_search_empty_state_message" = "Search for chats by name";

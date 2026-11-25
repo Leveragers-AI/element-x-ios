@@ -26,6 +26,8 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
     private var hasKnownWebRoomListSections: Bool
     private var hasStoppedWaitingForWebRoomListSections = false
     private var webRoomListSectionsWaitTask: Task<Void, Never>?
+    /// Leveragers: the rooms listed before a search, shown again as soon as it closes, until the full list is back.
+    private var roomListSearchTransition = RoomListSearchTransition.none
     private let analyticsService: AnalyticsServiceProtocol
     private let bugReportService: BugReportServiceProtocol
     private let userSettings: UserSettings
@@ -179,6 +181,11 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
                 guard let self else { return }
                 // isSearchFieldFocused` is sometimes turning to true after cancelling the search. So to be extra sure we are updating the values correctly we read them directly in the next run loop, and we add a small delay if the value has changed
                 let delay = isSearchFieldFocused == self.context.viewState.bindings.isSearchFieldFocused ? 0.0 : 0.05
+                if !isSearchFieldFocused, case .searching(let roomsBeforeSearch) = self.roomListSearchTransition {
+                    // Otherwise the search results, or an empty list, show until the room list is filtered again.
+                    self.roomListSearchTransition = .leaving(roomsBeforeSearch: roomsBeforeSearch, hasRequestedFullList: false)
+                    self.updateRooms()
+                }
                 DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                     self.updateFilter()
                 }
@@ -333,12 +340,33 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         if state.shouldHideRoomList {
             roomSummaryProvider?.setFilter(.excludeAll)
         } else if state.bindings.isSearchFieldFocused {
+            if userSettings.app.hasSimplifiedHomeScreen {
+                switch roomListSearchTransition {
+                case .none:
+                    roomListSearchTransition = .searching(roomsBeforeSearch: roomSummaryProvider?.roomListPublisher.value ?? [])
+                case .leaving(let roomsBeforeSearch, _):
+                    roomListSearchTransition = .searching(roomsBeforeSearch: roomsBeforeSearch)
+                case .searching:
+                    break
+                }
+            }
             roomSummaryProvider?.setFilter(.search(query: state.bindings.searchQuery))
         } else if let spaceFilter = spaceFilterSubject.value, !userSettings.app.hasSimplifiedHomeScreen {
             roomSummaryProvider?.setFilter(.rooms(roomsIDs: spaceFilter.descendants,
                                                   filters: state.bindings.filtersState.activeFilters.set))
         } else {
             roomSummaryProvider?.setFilter(.all(filters: state.bindings.filtersState.activeFilters.set))
+        }
+        
+        if case .leaving(let roomsBeforeSearch, false) = roomListSearchTransition {
+            roomListSearchTransition = .leaving(roomsBeforeSearch: roomsBeforeSearch, hasRequestedFullList: true)
+            // Don't hold on to the old rooms if the room list doesn't publish.
+            Task { [weak self] in
+                try? await Task.sleep(for: .seconds(1))
+                guard let self, case .leaving = roomListSearchTransition else { return }
+                roomListSearchTransition = .none
+                updateRooms()
+            }
         }
     }
     
@@ -357,6 +385,9 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             .sink { [weak self] state, rooms in
                 guard let self else { return }
                 
+                if case .leaving(_, true) = roomListSearchTransition {
+                    roomListSearchTransition = .none
+                }
                 updateRooms()
                 updateRoomListMode(with: state, hasRooms: !rooms.isEmpty)
             }
@@ -410,7 +441,13 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         var rooms = [HomeScreenRoom]()
         let seenInvites = userSettings.account.seenInvites
         
-        for summary in roomSummaryProvider.roomListPublisher.value {
+        let summaries = if case .leaving(let roomsBeforeSearch, _) = roomListSearchTransition {
+            roomsBeforeSearch
+        } else {
+            roomSummaryProvider.roomListPublisher.value
+        }
+        
+        for summary in summaries {
             let room = HomeScreenRoom(summary: summary,
                                       showAllActivity: userSettings.account.showAllRoomListActivity,
                                       seenInvites: seenInvites)
@@ -775,4 +812,12 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
                                          title: title ?? L10n.commonError,
                                          message: message ?? L10n.errorUnknown)
     }
+}
+
+/// Leveragers: where the home screen is in a room list search.
+private enum RoomListSearchTransition {
+    case none
+    case searching(roomsBeforeSearch: [RoomSummary])
+    /// The search closed: the rooms from before it are shown until the room list publishes without its filter.
+    case leaving(roomsBeforeSearch: [RoomSummary], hasRequestedFullList: Bool)
 }

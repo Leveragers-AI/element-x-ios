@@ -12,6 +12,8 @@ import Foundation
 internal nonisolated enum UntranslatedL10n {
   /// by Leveragers
   internal static var screenRoomlistBrandTagline: String { return UntranslatedL10n.tr("Untranslated", "screen_roomlist_brand_tagline") }
+  /// Search for chats by name
+  internal static var screenRoomlistSearchEmptyStateMessage: String { return UntranslatedL10n.tr("Untranslated", "screen_roomlist_search_empty_state_message") }
   /// Direct messages
   internal static var screenRoomlistSectionDirectMessages: String { return UntranslatedL10n.tr("Untranslated", "screen_roomlist_section_direct_messages") }
   /// Untranslated
