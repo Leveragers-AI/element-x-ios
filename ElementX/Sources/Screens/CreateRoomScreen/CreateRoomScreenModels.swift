@@ -35,6 +35,8 @@ struct CreateRoomScreenViewState: BindableState {
     let canSelectSpace: Bool
     /// Whether the access options (and the address of a public room) are offered.
     let showsAccessOptions: Bool
+    /// Whether the room can be created outside of any space. Leveragers: every room belongs to a space.
+    let allowsNoSpace: Bool
     var aliasLocalPart: String
     var editableSpaces: [SpaceServiceRoom] = []
     var bindings: CreateRoomScreenViewStateBindings

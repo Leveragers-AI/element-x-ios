@@ -24,11 +24,13 @@ struct CreateRoomSpaceSelectionSheet: View {
         ElementNavigationStack {
             List {
                 Section {
-                    ListRow(label: .plain(title: L10n.screenCreateRoomSpaceSelectionNoSpaceOption),
-                            kind: .selection(isSelected: context.selectedSpace == nil) {
-                                context.selectedSpace = nil
-                                dismiss()
-                            })
+                    if context.viewState.allowsNoSpace {
+                        ListRow(label: .plain(title: L10n.screenCreateRoomSpaceSelectionNoSpaceOption),
+                                kind: .selection(isSelected: context.selectedSpace == nil) {
+                                    context.selectedSpace = nil
+                                    dismiss()
+                                })
+                    }
                     ForEach(context.viewState.editableSpaces, id: \.id) { space in
                         ListRow(label: .avatar(title: space.name,
                                                description: space.canonicalAlias,

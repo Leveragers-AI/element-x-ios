@@ -68,6 +68,7 @@ class CreateRoomScreenViewModel: CreateRoomScreenViewModelType, CreateRoomScreen
                                                   isKnockingFeatureEnabled: userSession.userSettings.app.knockingEnabled,
                                                   canSelectSpace: canSelectSpace,
                                                   showsAccessOptions: isSpace || !userSession.userSettings.app.hasSimplifiedRoomCreation,
+                                                  allowsNoSpace: isSpace || !userSession.userSettings.app.hasSimplifiedRoomCreation,
                                                   aliasLocalPart: roomAliasNameFromRoomDisplayName(roomName: ""),
                                                   bindings: bindings)
         
