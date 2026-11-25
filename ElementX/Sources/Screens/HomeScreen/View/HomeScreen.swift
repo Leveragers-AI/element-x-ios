@@ -81,12 +81,14 @@ struct HomeScreen: View {
                     .accessibilityHidden(true)
                 
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    // The same sizes as Voice's header.
                     Text(InfoPlistReader.main.bundleDisplayName)
-                        .font(.custom("Sora", size: 22, relativeTo: .title2).weight(.bold))
+                        .font(.custom("Sora", size: 28, relativeTo: .title).weight(.bold))
+                        .tracking(-0.2)
                         .foregroundStyle(.compound.textPrimary)
                     
                     Text(UntranslatedL10n.screenRoomlistBrandTagline)
-                        .font(.compound.bodySM)
+                        .font(.custom("Sora", size: 13, relativeTo: .subheadline))
                         .foregroundStyle(.compound.textSecondary)
                 }
                 .fixedSize()
@@ -211,13 +213,12 @@ struct HomeScreen: View {
         }
     }
     
-    /// Leveragers: the same icon as our Voice app's settings.
+    /// Leveragers: the same settings icon as Element Web.
     private var brandSettingsButton: some View {
         Button {
             context.send(viewAction: .showSettings)
         } label: {
-            Image(systemName: "slider.horizontal.3")
-                .font(.compound.bodyLGSemibold)
+            CompoundIcon(\.settingsSolid, size: .small, relativeTo: .compound.bodyLG)
         }
         .accessibilityLabel(L10n.commonSettings)
         .accessibilityIdentifier(A11yIdentifiers.homeScreen.userAvatar)
