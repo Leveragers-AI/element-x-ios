@@ -50,8 +50,8 @@ struct ComposerToolbar: View {
                 bottomBar
             }
         }
-        .padding(.leading, 12)
-        .padding(.trailing, 12)
+        // Leveragers: a narrower floating composer, with room on both sides.
+        .padding(.horizontal, LeveragersTheme.hasFloatingComposer && !context.composerFormattingEnabled ? 24 : 12)
         .padding(.bottom, context.composerFormattingEnabled ? 8 : (LeveragersTheme.hasTranslucentRoomBars ? 0 : 12))
         .background {
             if context.composerFormattingEnabled {
@@ -165,7 +165,9 @@ struct ComposerToolbar: View {
     }
     
     private var sendButton: some View {
-        SendButton(mode: context.viewState.sendButtonMode, action: sendMessage)
+        SendButton(mode: context.viewState.sendButtonMode,
+                   isCompact: LeveragersTheme.hasFloatingComposer && !context.composerFormattingEnabled,
+                   action: sendMessage)
             .accessibilityLabel(context.viewState.sendButtonAccessibilityLabel)
             .disabled(context.viewState.sendButtonDisabled)
             .animation(.linear(duration: 0.1).disabledDuringTests(), value: context.viewState.sendButtonDisabled)
@@ -360,7 +362,7 @@ struct ComposerToolbarButtonStyle: ButtonStyle {
         func label(content: Content) -> some View {
             content
                 .foregroundStyle(isEnabled ? .compound.iconPrimary : .compound.iconDisabled)
-                .scaledPadding(LeveragersTheme.hasFloatingComposer ? 8 : 10, relativeTo: .compound.headingLG)
+                .scaledPadding(LeveragersTheme.hasFloatingComposer ? 6 : 10, relativeTo: .compound.headingLG)
         }
     }
     
@@ -455,11 +457,11 @@ struct ComposerToolbar_Previews: PreviewProvider, TestablePreview {
 private struct FloatingComposerModifier: ViewModifier {
     let isActive: Bool
     
-    private let shape = RoundedRectangle(cornerRadius: 28, style: .continuous)
+    private let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
     
     func body(content: Content) -> some View {
         content
-            .padding(isActive ? 6 : 0)
+            .padding(isActive ? 5 : 0)
             .background {
                 shape
                     .fill(Color.white)

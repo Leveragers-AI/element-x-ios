@@ -19,6 +19,8 @@ public struct SendButton: View {
     private let mode: Mode
     /// The action to perform when the user triggers the button.
     private let action: () -> Void
+    /// Whether the button is drawn at 32pt x 32pt, for compact composers.
+    private let isCompact: Bool
     
     private var icon: KeyPath<CompoundIcons, Image> {
         switch mode {
@@ -37,8 +39,9 @@ public struct SendButton: View {
     }
     
     /// Creates a send button that performs the provided action.
-    public init(mode: Mode = .send, action: @escaping () -> Void) {
+    public init(mode: Mode = .send, isCompact: Bool = false, action: @escaping () -> Void) {
         self.mode = mode
+        self.isCompact = isCompact
         self.action = action
     }
     
@@ -61,9 +64,9 @@ public struct SendButton: View {
     }
     
     var baseIcon: some View {
-        CompoundIcon(icon, size: .medium, relativeTo: .compound.headingLG)
+        CompoundIcon(icon, size: isCompact ? .small : .medium, relativeTo: .compound.headingLG)
             .foregroundStyle(iconColor)
-            .scaledPadding(Compound.supportsGlass ? 10 : 6, relativeTo: .compound.headingLG)
+            .scaledPadding(isCompact ? 6 : (Compound.supportsGlass ? 10 : 6), relativeTo: .compound.headingLG)
     }
 }
 

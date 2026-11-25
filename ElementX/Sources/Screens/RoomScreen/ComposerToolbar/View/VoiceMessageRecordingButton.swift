@@ -41,16 +41,16 @@ struct VoiceMessageRecordingButton: View {
             switch mode {
             case .idle:
                 CompoundIcon(Compound.supportsGlass ? \.micOnSolid : \.micOn,
-                             size: .medium,
+                             size: LeveragersTheme.hasFloatingComposer ? .small : .medium,
                              relativeTo: .compound.headingLG)
                     .foregroundColor(recordIconColour)
-                    .scaledPadding(Compound.supportsGlass ? 10 : 6, relativeTo: .compound.headingLG)
+                    .scaledPadding(LeveragersTheme.hasFloatingComposer ? 6 : (Compound.supportsGlass ? 10 : 6), relativeTo: .compound.headingLG)
             case .recording:
                 CompoundIcon(\.stopSolid,
-                             size: Compound.supportsGlass ? .medium : .small,
+                             size: Compound.supportsGlass && !LeveragersTheme.hasFloatingComposer ? .medium : .small,
                              relativeTo: .compound.headingLG)
                     .foregroundColor(.compound.iconOnSolidPrimary)
-                    .scaledPadding(Compound.supportsGlass ? 10 : 8, relativeTo: .compound.headingLG)
+                    .scaledPadding(LeveragersTheme.hasFloatingComposer ? 6 : (Compound.supportsGlass ? 10 : 8), relativeTo: .compound.headingLG)
                     .background(.compound.bgActionPrimaryRest, in: .circle)
                     .compositingGroup()
             }

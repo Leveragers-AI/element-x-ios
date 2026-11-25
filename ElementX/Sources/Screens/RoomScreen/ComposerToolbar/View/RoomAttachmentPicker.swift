@@ -20,7 +20,7 @@ struct RoomAttachmentPicker: View {
             menuContent
         } label: {
             CompoundIcon(\.plus,
-                         size: Compound.supportsGlass ? .medium : .small,
+                         size: Compound.supportsGlass && !LeveragersTheme.hasFloatingComposer ? .medium : .small,
                          relativeTo: .compound.headingLG)
         }
         .buttonStyle(ComposerToolbarButtonStyle())

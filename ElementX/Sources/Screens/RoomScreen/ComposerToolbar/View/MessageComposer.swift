@@ -208,7 +208,7 @@ private struct MessageComposerStyleModifier<Header: View>: ViewModifier {
     let contentIncludesPadding: Bool
     
     private let composerShape = RoundedRectangle(cornerRadius: 21, style: .circular)
-    private let horizontalPadding: CGFloat = Compound.supportsGlass ? 16 : 12
+    private let horizontalPadding: CGFloat = LeveragersTheme.hasFloatingComposer ? 4 : (Compound.supportsGlass ? 16 : 12)
     
     func body(content: Content) -> some View {
         if LeveragersTheme.hasFloatingComposer {
@@ -244,7 +244,7 @@ private struct MessageComposerStyleModifier<Header: View>: ViewModifier {
             
             content
                 .tint(.compound.iconAccentTertiary)
-                .padding(.vertical, contentIncludesPadding ? 0 : (Compound.supportsGlass ? 11 : 10))
+                .padding(.vertical, contentIncludesPadding ? 0 : (LeveragersTheme.hasFloatingComposer ? 6 : (Compound.supportsGlass ? 11 : 10)))
                 .padding(.horizontal, contentIncludesPadding ? 0 : horizontalPadding)
         }
         .clipShape(composerShape)
