@@ -150,7 +150,7 @@ struct SpaceScreen: View {
                             }
                         }
                         
-                        if let permalink = context.viewState.permalink {
+                        if let permalink = context.viewState.permalink, AppSettings.allowsSharingRooms {
                             ShareLink(item: permalink) {
                                 Label(L10n.actionShare, icon: \.shareIos)
                             }

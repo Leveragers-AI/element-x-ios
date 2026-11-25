@@ -145,6 +145,8 @@ final nonisolated class AppSettings: @unchecked Sendable {
     /// Leveragers: whether a private chat offers to invite people, which starts a new room with its recipient.
     /// Hidden for now: we don't want to encourage rooms built around an agent's private chat.
     static let allowsInvitingToNewRoomFromDirectMessages = false
+    /// Leveragers: whether rooms and spaces offer to share their link. Our rooms are only reached from the apps.
+    static let allowsSharingRooms = false
     /// Leveragers: the space last picked from the home screen title menu.
     @UserPreference
     var homeScreenSpaceID: String?

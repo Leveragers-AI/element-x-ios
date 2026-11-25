@@ -105,10 +105,12 @@ struct RoomDetailsScreenViewState: BindableState {
         if dmRecipientInfo == nil, canInviteUsers {
             shortcuts.append(.invite)
         }
-        if let permalink = dmRecipientInfo?.member.permalink {
-            shortcuts.append(.share(link: permalink))
-        } else if let permalink {
-            shortcuts.append(.share(link: permalink))
+        if AppSettings.allowsSharingRooms {
+            if let permalink = dmRecipientInfo?.member.permalink {
+                shortcuts.append(.share(link: permalink))
+            } else if let permalink {
+                shortcuts.append(.share(link: permalink))
+            }
         }
         return shortcuts
     }
