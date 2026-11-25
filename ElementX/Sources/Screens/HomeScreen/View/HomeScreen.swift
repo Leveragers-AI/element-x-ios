@@ -69,13 +69,16 @@ struct HomeScreen: View {
         }
     }
     
-    /// Leveragers: the profile picture next to the app name and its signature, like our Voice app, and the new room button.
+    /// Leveragers: the logo next to the app name and its signature, then the settings and new room buttons, like our Voice app.
     @ToolbarContentBuilder
     private var largeTitleToolbar: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
             HStack(spacing: 10) {
-                settingsButton
-                    .buttonStyle(.borderless)
+                Image(asset: Asset.Images.appLogo)
+                    .resizable()
+                    .frame(width: 26, height: 26)
+                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                    .accessibilityHidden(true)
                 
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Text(InfoPlistReader.main.bundleDisplayName)
@@ -91,8 +94,21 @@ struct HomeScreen: View {
                 .accessibilityAddTraits(.isHeader)
             }
         }
-        // The avatar is already round, a glass circle around it would crop it.
+        // A brand, not a button.
         .backportSharedBackgroundVisibility(.hidden)
+        
+        ToolbarItem(placement: .primaryAction) {
+            if #available(iOS 26, *) {
+                brandSettingsButton
+            } else {
+                brandSettingsButton
+                    .buttonStyle(.compound(.tertiary, size: .toolbarIcon))
+            }
+        }
+        
+        if #available(iOS 26, *) {
+            ToolbarSpacer(.fixed, placement: .primaryAction)
+        }
         
         ToolbarItem(placement: .primaryAction) {
             if #available(iOS 26, *) {
@@ -193,6 +209,18 @@ struct HomeScreen: View {
                              mediaProvider: context.mediaProvider) {
             context.send(viewAction: .showSettings)
         }
+    }
+    
+    /// Leveragers: the same icon as our Voice app's settings.
+    private var brandSettingsButton: some View {
+        Button {
+            context.send(viewAction: .showSettings)
+        } label: {
+            Image(systemName: "slider.horizontal.3")
+                .font(.compound.bodyLGSemibold)
+        }
+        .accessibilityLabel(L10n.commonSettings)
+        .accessibilityIdentifier(A11yIdentifiers.homeScreen.userAvatar)
     }
     
     @ViewBuilder
