@@ -334,7 +334,8 @@ final nonisolated class AppSettings: @unchecked Sendable {
     
     /// Whether or not to show a warning on the media caption composer so the user knows
     /// that captions might not be visible to users who are using other Matrix clients.
-    let shouldShowMediaCaptionWarning = true
+    /// Leveragers: off, our web and mobile apps both show captions.
+    let shouldShowMediaCaptionWarning = false
     
     // MARK: - Element Call
     
