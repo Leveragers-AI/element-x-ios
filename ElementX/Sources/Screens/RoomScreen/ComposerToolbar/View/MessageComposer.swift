@@ -244,7 +244,7 @@ private struct MessageComposerStyleModifier<Header: View>: ViewModifier {
             
             content
                 .tint(.compound.iconAccentTertiary)
-                .padding(.vertical, contentIncludesPadding ? 0 : (LeveragersTheme.hasFloatingComposer ? 6 : (Compound.supportsGlass ? 11 : 10)))
+                .padding(.vertical, contentIncludesPadding ? 0 : (LeveragersTheme.hasFloatingComposer ? 7 : (Compound.supportsGlass ? 11 : 10)))
                 .padding(.horizontal, contentIncludesPadding ? 0 : horizontalPadding)
         }
         .clipShape(composerShape)

@@ -25,14 +25,15 @@ struct ComposerToolbar: View {
     ///   additional padding is required to centre the buttons vertically when there's a single line of text,
     ///   but preserve their position (using bottom alignment) when there's 2 or more lines of text.
     private var buttonVerticalPadding: CGFloat {
-        Compound.supportsGlass ? 0 : 6
+        // Leveragers: centres the smaller buttons on a single line of the floating composer.
+        LeveragersTheme.hasFloatingComposer ? 1.5 : (Compound.supportsGlass ? 0 : 6)
     }
     
     /// - When Liquid Glass is available, the buttons and composer are all 44pt x 44pt.
     /// - On iOS 18 and below, the trailing button is 36pt x 36pt and the composer is 42pt high, so some
     ///   additional padding is required to centre the button (and maintain alignment as described above).
     private var trailingButtonVerticalPadding: CGFloat {
-        Compound.supportsGlass ? 0 : 3
+        LeveragersTheme.hasFloatingComposer ? 1.5 : (Compound.supportsGlass ? 0 : 3)
     }
     
     var body: some View {
@@ -457,17 +458,25 @@ struct ComposerToolbar_Previews: PreviewProvider, TestablePreview {
 private struct FloatingComposerModifier: ViewModifier {
     let isActive: Bool
     
-    private let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
+    // Fully rounded at the height of a single line, like the search field of the home screen.
+    private let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
     
     func body(content: Content) -> some View {
-        content
-            .padding(isActive ? 5 : 0)
-            .background {
-                shape
-                    .fill(Color.white)
-                    .overlay(shape.stroke(Color.compound.borderInteractiveSecondary, lineWidth: 0.5))
-                    .shadow(color: Color.compound.textPrimary.opacity(0.08), radius: 18, y: 6)
-                    .opacity(isActive ? 1 : 0)
-            }
+        if #available(iOS 26, *) {
+            // The same glass as the system search field of the home screen, for a consistent bottom bar.
+            content
+                .padding(isActive ? 5 : 0)
+                .glassEffect(isActive ? .regular : .identity, in: shape)
+        } else {
+            content
+                .padding(isActive ? 5 : 0)
+                .background {
+                    shape
+                        .fill(Color.white)
+                        .overlay(shape.stroke(Color.compound.borderInteractiveSecondary, lineWidth: 0.5))
+                        .shadow(color: Color.compound.textPrimary.opacity(0.08), radius: 18, y: 6)
+                        .opacity(isActive ? 1 : 0)
+                }
+        }
     }
 }

@@ -115,7 +115,7 @@ private struct BarEdgeBlur: View {
         // A light blur and tint easing out in several steps, for a soft edge rather than a band.
         Rectangle()
             .fill(.ultraThinMaterial)
-            .overlay(Color.compound.bgCanvasDefault.opacity(0.25))
+            .overlay(Color.compound.bgCanvasDefault.opacity(0.6)) // Keeps the cream of the canvas, like the home screen.
             .mask {
                 LinearGradient(stops: [.init(color: .black, location: 0),
                                        .init(color: .black.opacity(0.85), location: 0.3),
