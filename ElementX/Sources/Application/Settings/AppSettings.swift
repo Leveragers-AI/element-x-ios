@@ -135,9 +135,9 @@ final nonisolated class AppSettings: @unchecked Sendable {
     /// Leveragers: the settings hide the user status, location sharing, Labs and the developer options.
     let hasSimplifiedSettings = true
     /// Leveragers: new rooms go in the first space by default and open to its members, without the access and address options.
-    let hasSimplifiedRoomCreation = true
+    private(set) var hasSimplifiedRoomCreation = true
     /// Leveragers: the start screen opens the chat server's sign-in page by itself, its button stays for a retry.
-    let opensSignInAutomatically = true
+    private(set) var opensSignInAutomatically = true
     /// Leveragers: the space last picked from the home screen title menu.
     @UserPreference
     var homeScreenSpaceID: String?
@@ -438,5 +438,11 @@ final nonisolated class AppSettings: @unchecked Sendable {
     
     static func volatile() -> AppSettings {
         AppSettings(store: VolatileUserDefaults())
+    }
+    
+    /// Restores Element's room creation and start screen, for the tests written against them.
+    func disableLeveragersFlows() {
+        hasSimplifiedRoomCreation = false
+        opensSignInAutomatically = false
     }
 }

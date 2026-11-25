@@ -27,6 +27,7 @@ final class CreateRoomScreenViewModelTests {
     
     init() {
         userSettings = UserSettings.mock()
+        userSettings.app.disableLeveragersFlows()
     }
     
     isolated deinit {
