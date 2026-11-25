@@ -807,7 +807,21 @@ class ClientProxy: ClientProxyProtocol {
             // The SDK drops the tags that aren't `m.*` or `u.*`, so ask the homeserver for each room's tags.
             let session = try client.session()
             let roomIDs = client.rooms().filter { $0.membership() == .joined }.map { $0.id() }
-            sections.roomTags = await Self.fetchCustomSectionTags(roomIDs: roomIDs, session: session)
+            var fetched = await Self.fetchCustomSectionTags(roomIDs: roomIDs, session: session)
+            
+            // These requests don't go through the SDK, which renews the access token when the homeserver
+            // refuses it. So let an SDK request renew it, then try those rooms once more with the new one.
+            if !fetched.unauthorizedRoomIDs.isEmpty {
+                MXLog.info("The access token was refused for \(fetched.unauthorizedRoomIDs.count) rooms' tags, retrying once.")
+                _ = try? await client.getProfile(userId: session.userId)
+                let retried = try await Self.fetchCustomSectionTags(roomIDs: Array(fetched.unauthorizedRoomIDs), session: client.session())
+                fetched.roomTags.merge(retried.roomTags) { _, retried in retried }
+                fetched.unauthorizedRoomIDs = retried.unauthorizedRoomIDs
+                fetched.failedRoomIDs.formUnion(retried.failedRoomIDs)
+            }
+            
+            sections.roomTags = fetched.roomTags
+            sections.unreadableRoomIDs = fetched.unauthorizedRoomIDs.union(fetched.failedRoomIDs)
             return .success(sections)
         } catch {
             MXLog.error("Failed loading the Element Web room list sections with error: \(error)")
@@ -815,30 +829,79 @@ class ClientProxy: ClientProxyProtocol {
         }
     }
     
-    private nonisolated static func fetchCustomSectionTags(roomIDs: [String], session: Session) async -> [String: Set<String>] {
-        guard let homeserverURL = URL(string: session.homeserverUrl) else { return [:] }
+    /// The custom section tags of the given rooms, and the rooms whose tags couldn't be read.
+    private nonisolated struct FetchedCustomSectionTags: Sendable {
+        var roomTags = [String: Set<String>]()
+        /// The homeserver refused the access token (it may have just expired).
+        var unauthorizedRoomIDs = Set<String>()
+        /// Any other failure.
+        var failedRoomIDs = Set<String>()
+    }
+    
+    private nonisolated enum CustomSectionTagsResponse: Sendable {
+        case tags(Set<String>)
+        case unauthorized
+        case failed
+    }
+    
+    /// The number of tags requests sent at the same time.
+    private nonisolated static let maximumConcurrentTagsRequests = 6
+    
+    private nonisolated static func fetchCustomSectionTags(roomIDs: [String], session: Session) async -> FetchedCustomSectionTags {
+        guard let homeserverURL = URL(string: session.homeserverUrl) else {
+            return FetchedCustomSectionTags(failedRoomIDs: Set(roomIDs))
+        }
         
-        return await withTaskGroup(of: (String, Set<String>)?.self) { group in
-            for roomID in roomIDs {
-                group.addTask {
-                    let url = homeserverURL.appending(components: "_matrix", "client", "v3", "user", session.userId, "rooms", roomID, "tags")
-                    var request = URLRequest(url: url)
-                    request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
-                    
-                    guard let (data, response) = try? await URLSession.shared.data(for: request),
-                          (response as? HTTPURLResponse)?.statusCode == 200 else {
-                        MXLog.warning("Failed loading the tags of a room")
-                        return nil
+        return await withTaskGroup(of: (String, CustomSectionTagsResponse).self) { group in
+            var fetched = FetchedCustomSectionTags()
+            var pendingRoomIDs = roomIDs.makeIterator()
+            
+            // A few requests at a time: each one that completes starts the next.
+            for _ in 0..<Self.maximumConcurrentTagsRequests {
+                guard let roomID = pendingRoomIDs.next() else { break }
+                group.addTask { await (roomID, Self.fetchCustomSectionTags(roomID: roomID, homeserverURL: homeserverURL, session: session)) }
+            }
+            
+            for await (roomID, response) in group {
+                switch response {
+                case .tags(let tags):
+                    if !tags.isEmpty {
+                        fetched.roomTags[roomID] = tags
                     }
-                    return (roomID, WebRoomListSections.customTags(fromTagsJSON: data))
+                case .unauthorized:
+                    fetched.unauthorizedRoomIDs.insert(roomID)
+                case .failed:
+                    fetched.failedRoomIDs.insert(roomID)
+                }
+                
+                if let nextRoomID = pendingRoomIDs.next() {
+                    group.addTask { await (nextRoomID, Self.fetchCustomSectionTags(roomID: nextRoomID, homeserverURL: homeserverURL, session: session)) }
                 }
             }
             
-            var roomTags = [String: Set<String>]()
-            for await case let (roomID, tags)? in group where !tags.isEmpty {
-                roomTags[roomID] = tags
-            }
-            return roomTags
+            return fetched
+        }
+    }
+    
+    private nonisolated static func fetchCustomSectionTags(roomID: String, homeserverURL: URL, session: Session) async -> CustomSectionTagsResponse {
+        let url = homeserverURL.appending(components: "_matrix", "client", "v3", "user", session.userId, "rooms", roomID, "tags")
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
+        
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              let statusCode = (response as? HTTPURLResponse)?.statusCode else {
+            MXLog.warning("Failed loading the tags of a room")
+            return .failed
+        }
+        
+        switch statusCode {
+        case 200:
+            return .tags(WebRoomListSections.customTags(fromTagsJSON: data))
+        case 401:
+            return .unauthorized
+        default:
+            MXLog.warning("Failed loading the tags of a room with status \(statusCode)")
+            return .failed
         }
     }
     

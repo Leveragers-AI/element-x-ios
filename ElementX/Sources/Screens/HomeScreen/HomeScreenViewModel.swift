@@ -445,12 +445,26 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         }
         webRoomListSectionsLoadDate = .now
         
-        guard case let .success(sections) = await userSession.clientProxy.webRoomListSections(),
-              sections != webRoomListSections else {
+        guard case var .success(sections) = await userSession.clientProxy.webRoomListSections() else {
+            // Try again the next time the screen appears.
+            webRoomListSectionsLoadDate = nil
             return
         }
         
-        MXLog.info("Loaded \(sections.customSectionNames.count) Element Web sections for \(sections.roomTags.count) rooms.")
+        if !sections.unreadableRoomIDs.isEmpty {
+            // Rooms whose tags couldn't be read stay in the section they were in,
+            // and they are asked for again the next time the screen appears.
+            for roomID in sections.unreadableRoomIDs {
+                sections.roomTags[roomID] = webRoomListSections.roomTags[roomID]
+            }
+            webRoomListSectionsLoadDate = nil
+        }
+        
+        guard sections != webRoomListSections else {
+            return
+        }
+        
+        MXLog.info("Loaded \(sections.customSectionNames.count) Element Web sections for \(sections.roomTags.count) rooms, \(sections.unreadableRoomIDs.count) unreadable.")
         webRoomListSections = sections
         updateRooms()
     }

@@ -29,6 +29,8 @@ nonisolated struct WebRoomListSections: Equatable, Sendable {
     let customSectionNames: [String: String]
     /// The custom section tags of each room, by room ID.
     var roomTags: [String: Set<String>] = [:]
+    /// The rooms whose tags couldn't be read this time, so their sections aren't known.
+    var unreadableRoomIDs: Set<String> = []
     
     init(orderedTags: [String], customSectionNames: [String: String], roomTags: [String: Set<String>] = [:]) {
         self.orderedTags = orderedTags
