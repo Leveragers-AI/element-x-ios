@@ -57,6 +57,8 @@ struct SettingsScreenViewState: BindableState {
     let showAnalyticsSettings: Bool
     let showLocationSharingSettings: Bool
     let showLabs: Bool
+    let showAppearanceSettings: Bool
+    let showMediaUploadQualitySettings: Bool
     
     let isBugReportServiceEnabled: Bool
     

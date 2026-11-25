@@ -173,16 +173,20 @@ struct SettingsScreen: View {
     
     private var appSettingsSection: some View {
         Section {
-            ListRow(label: .default(title: L10n.commonAppearance,
-                                    icon: \.darkMode),
-                    kind: .picker(selection: $context.appAppearance,
-                                  items: AppAppearance.allCases.map { (title: $0.name, tag: $0) }))
+            if context.viewState.showAppearanceSettings {
+                ListRow(label: .default(title: L10n.commonAppearance,
+                                        icon: \.darkMode),
+                        kind: .picker(selection: $context.appAppearance,
+                                      items: AppAppearance.allCases.map { (title: $0.name, tag: $0) }))
+            }
             
-            ListRow(label: .default(title: L10n.commonMediaUploadQuality,
-                                    icon: \.image),
-                    kind: .navigationLink {
-                        context.send(viewAction: .mediaUploadQuality)
-                    })
+            if context.viewState.showMediaUploadQualitySettings {
+                ListRow(label: .default(title: L10n.commonMediaUploadQuality,
+                                        icon: \.image),
+                        kind: .navigationLink {
+                            context.send(viewAction: .mediaUploadQuality)
+                        })
+            }
             
             ListRow(label: .default(title: L10n.commonScreenLock,
                                     icon: \.lock),

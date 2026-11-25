@@ -221,7 +221,8 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
                 
                 windowManager.windows.forEach { window in
                     // Unfortunately .preferredColorScheme doesn't propagate properly throughout the app when changed
-                    window.overrideUserInterfaceStyle = appAppearance.interfaceStyle
+                    // Leveragers: always the light style of the Info.plist, whatever was picked before the setting was hidden.
+                    window.overrideUserInterfaceStyle = appSettings.hasSimplifiedSettings ? .unspecified : appAppearance.interfaceStyle
                 }
             }
             .modifier(SnowEffect(isEnabledPublisher: appSettings.snowEnabledPublisher)))

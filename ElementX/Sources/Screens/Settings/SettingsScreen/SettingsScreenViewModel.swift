@@ -36,6 +36,8 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
                                            showAnalyticsSettings: userSettings.app.canPromptForAnalytics,
                                            showLocationSharingSettings: !userSettings.app.hasSimplifiedSettings,
                                            showLabs: !userSettings.app.hasSimplifiedSettings,
+                                           showAppearanceSettings: !userSettings.app.hasSimplifiedSettings,
+                                           showMediaUploadQualitySettings: !userSettings.app.hasSimplifiedSettings,
                                            isBugReportServiceEnabled: isBugReportServiceEnabled,
                                            navigationBarVisibility: isInSecondaryWindow ? .hidden : .automatic,
                                            bindings: .init(userSettings: userSettings)),

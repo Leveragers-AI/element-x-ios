@@ -132,7 +132,8 @@ final nonisolated class AppSettings: @unchecked Sendable {
     private(set) var hideBrandChrome = true
     /// Leveragers: the home screen is a single chats list, without tabs, filters, search or space filters.
     let hasSimplifiedHomeScreen = true
-    /// Leveragers: the settings hide the user status, location sharing, Labs and the developer options.
+    /// Leveragers: the settings hide the user status, location sharing, Labs, the developer options, the appearance
+    /// and the media upload quality.
     let hasSimplifiedSettings = true
     /// Leveragers: new rooms go in the first space by default and open to its members, without the access and address options.
     private(set) var hasSimplifiedRoomCreation = true
