@@ -27,17 +27,17 @@ struct ToolbarButton: View {
         }
         
         @ViewBuilder
-        var icon: some View {
+        func icon(isEnabled: Bool) -> some View {
             switch self {
             case .cancel:
                 CompoundIcon(\.close)
                     .foregroundStyle(.compound.iconPrimary)
             case .confirm:
                 CompoundIcon(\.check)
-                    .foregroundStyle(.compound.iconOnSolidPrimary)
+                    .foregroundStyle(isEnabled ? .compound.iconOnSolidPrimary : .compound.iconDisabled)
             case .destructive:
                 CompoundIcon(\.delete)
-                    .foregroundStyle(.compound.iconOnSolidPrimary)
+                    .foregroundStyle(isEnabled ? .compound.iconOnSolidPrimary : .compound.iconDisabled)
             }
         }
         
@@ -56,6 +56,9 @@ struct ToolbarButton: View {
     let role: Role
     let action: () -> Void
     
+    // Disabled, the prominent glass loses its tint: an icon made for the tint would vanish on the bare glass.
+    @Environment(\.isEnabled) private var isEnabled
+    
     var body: some View {
         if #available(iOS 26, *) {
             if let tint = role.tint {
@@ -72,7 +75,7 @@ struct ToolbarButton: View {
     
     private var glassButton: some View {
         Button(action: action) {
-            role.icon
+            role.icon(isEnabled: isEnabled)
                 .accessibilityLabel(role.title)
         }
     }
@@ -84,17 +87,26 @@ struct ToolbarButton: View {
 
 struct ToolbarButton_Previews: PreviewProvider, TestablePreview {
     static var previews: some View {
+        preview(isEnabled: true)
+            .previewDisplayName("Enabled")
+        preview(isEnabled: false)
+            .previewDisplayName("Disabled")
+    }
+    
+    static func preview(isEnabled: Bool) -> some View {
         ElementNavigationStack {
             Color.clear
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
                         ToolbarButton(role: .done) { }
+                            .disabled(!isEnabled)
                     }
                     ToolbarItem(placement: .cancellationAction) {
                         ToolbarButton(role: .cancel) { }
                     }
                     ToolbarItem(placement: .primaryAction) {
                         ToolbarButton(role: .destructive(title: L10n.actionRemove)) { }
+                            .disabled(!isEnabled)
                     }
                 }
         }
