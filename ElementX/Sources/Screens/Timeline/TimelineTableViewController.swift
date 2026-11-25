@@ -196,6 +196,11 @@ class TimelineTableViewController: UIViewController {
         tableView.separatorStyle = .none
         tableView.allowsSelection = false
         tableView.keyboardDismissMode = .onDrag
+        // Leveragers: a tap on the conversation also closes the keyboard, like in other messaging apps.
+        let keyboardDismissTap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        keyboardDismissTap.cancelsTouchesInView = false
+        keyboardDismissTap.delegate = self
+        tableView.addGestureRecognizer(keyboardDismissTap)
         tableView.backgroundColor = .compound.bgCanvasDefault
         
         // The tableview is flipped to display the newest items at the bottom.
@@ -601,6 +606,19 @@ extension TimelineTableViewController: UITableViewDelegate {
     
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
         sendLastVisibleItemReadReceipt()
+    }
+}
+
+// MARK: - Keyboard
+
+extension TimelineTableViewController: UIGestureRecognizerDelegate {
+    @objc private func dismissKeyboard() {
+        view.window?.endEditing(true)
+    }
+    
+    // The links, reactions and long presses of the messages keep working alongside the tap.
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        true
     }
 }
 
