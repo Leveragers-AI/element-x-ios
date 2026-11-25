@@ -87,19 +87,18 @@ private extension TimelineView {
     var timeline: some View {
         if #available(iOS 26, *), LeveragersTheme.hasTranslucentRoomBars {
             GeometryReader { geometry in
-                // Laid out within the safe area, the table itself reaches under the bars.
+                // Laid out within the safe area (above the keyboard too), the table itself reaches under the bars.
                 TimelineViewRepresentable(barInsets: geometry.safeAreaInsets)
-                    .padding(.top, geometry.safeAreaInsets.top)
-                    .padding(.bottom, geometry.safeAreaInsets.bottom)
                     .overlay(alignment: .top) {
                         BarEdgeBlur(edge: .top)
                             .frame(height: geometry.safeAreaInsets.top + 24)
+                            .offset(y: -geometry.safeAreaInsets.top)
                     }
                     .overlay(alignment: .bottom) {
                         BarEdgeBlur(edge: .bottom)
                             .frame(height: geometry.safeAreaInsets.bottom + 24)
+                            .offset(y: geometry.safeAreaInsets.bottom)
                     }
-                    .ignoresSafeArea(.container, edges: .vertical)
             }
         } else {
             TimelineViewRepresentable()
