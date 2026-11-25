@@ -102,7 +102,9 @@ struct TimelineItemMenu: View {
                     send(.itemSendInfoTapped(itemID: item.id))
                 }
                 .padding(.bottom, 8)
-            } else if let authenticity = item.properties.encryptionAuthenticity {
+            } else if let authenticity = item.properties.encryptionAuthenticity,
+                      authenticity != .notGuaranteed(color: .gray) {
+                // Leveragers: no grey "authenticity can't be guaranteed" notice, like in the timeline. The other warnings stay.
                 Label(authenticity.message, icon: authenticity.icon, iconSize: .small, relativeTo: .compound.bodySMSemibold)
                     .font(.compound.bodySMSemibold)
                     .foregroundStyle(authenticity.foregroundStyle)

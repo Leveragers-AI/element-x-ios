@@ -105,7 +105,7 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
                                                        timelineState: TimelineState(focussedEvent: focussedEventID.map { .init(eventID: $0, appearance: .immediate) }),
                                                        ownUserID: roomProxy.ownUserID,
                                                        hideTimelineMedia: hideTimelineMedia,
-                                                       isViewSourceEnabled: userSettings.app.viewSourceEnabled,
+                                                       isViewSourceEnabled: userSettings.app.viewSourceEnabled && !userSettings.app.hasSimplifiedSettings,
                                                        areThreadsEnabled: userSettings.app.threadsEnabled,
                                                        linkPreviewsEnabled: userSettings.app.linkPreviewsEnabled,
                                                        jumpToReadMarkerEnabled: userSettings.app.jumpToReadMarkerEnabled,
@@ -588,7 +588,9 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
             .weakAssign(to: \.state.showReadReceipts, on: self)
             .store(in: &cancellables)
         
+        let hasSimplifiedSettings = userSettings.app.hasSimplifiedSettings
         userSettings.app.viewSourceEnabledPublisher
+            .map { $0 && !hasSimplifiedSettings }
             .weakAssign(to: \.state.isViewSourceEnabled, on: self)
             .store(in: &cancellables)
         
