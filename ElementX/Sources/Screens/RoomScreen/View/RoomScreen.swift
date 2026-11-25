@@ -441,11 +441,13 @@ private struct LowFloatingComposerModifier: ViewModifier {
     
     /// The gap kept between the composer and the bottom of the screen, the same as the home screen search field.
     private let bottomMargin: CGFloat = 29
+    /// The gap kept between the composer and the keyboard.
+    private let keyboardMargin: CGFloat = 10
     
     func body(content: Content) -> some View {
         if #available(iOS 26, *), LeveragersTheme.hasTranslucentRoomBars {
             content
-                .padding(.bottom, isKeyboardVisible ? 0 : -max(0, homeIndicatorHeight - bottomMargin))
+                .padding(.bottom, isKeyboardVisible ? keyboardMargin : -max(0, homeIndicatorHeight - bottomMargin))
                 .introspect(.window, on: .supportedVersions) { window in
                     if homeIndicatorHeight != window.safeAreaInsets.bottom {
                         homeIndicatorHeight = window.safeAreaInsets.bottom
