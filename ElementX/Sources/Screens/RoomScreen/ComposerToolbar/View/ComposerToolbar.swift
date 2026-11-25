@@ -38,8 +38,17 @@ struct ComposerToolbar: View {
     
     var body: some View {
         VStack(spacing: 8) {
-            topBar
-                .modifier(FloatingComposerModifier(isActive: LeveragersTheme.hasFloatingComposer && !context.composerFormattingEnabled))
+            VStack(spacing: 0) {
+                if isFloating {
+                    // Across the whole capsule, above the attachment button, the text and the send button.
+                    MessageComposer.header(for: context.viewState.composerMode, cancellationAction: cancelComposerMode)
+                        .padding(.horizontal, 4)
+                        .animation(.noAnimation, value: context.viewState.composerMode)
+                }
+                
+                topBar
+            }
+            .modifier(FloatingComposerModifier(isActive: isFloating))
             
             if context.composerFormattingEnabled {
                 if verticalSizeClass != .compact,
@@ -52,7 +61,7 @@ struct ComposerToolbar: View {
             }
         }
         // Leveragers: a narrower floating composer, with room on both sides.
-        .padding(.horizontal, LeveragersTheme.hasFloatingComposer && !context.composerFormattingEnabled ? 24 : 12)
+        .padding(.horizontal, isFloating ? 24 : 12)
         .padding(.bottom, context.composerFormattingEnabled ? 8 : (LeveragersTheme.hasTranslucentRoomBars ? 0 : 12))
         .background {
             if context.composerFormattingEnabled {
@@ -129,6 +138,21 @@ struct ComposerToolbar: View {
         }
     }
     
+    private var isFloating: Bool {
+        LeveragersTheme.hasFloatingComposer && !context.composerFormattingEnabled
+    }
+    
+    private func cancelComposerMode() {
+        switch context.viewState.composerMode {
+        case .edit:
+            context.send(viewAction: .cancelEdit)
+        case .reply:
+            context.send(viewAction: .cancelReply)
+        default:
+            break
+        }
+    }
+    
     private var topBarLayout: some Layout {
         HStackLayout(alignment: .bottom, spacing: 12)
     }
@@ -167,7 +191,7 @@ struct ComposerToolbar: View {
     
     private var sendButton: some View {
         SendButton(mode: context.viewState.sendButtonMode,
-                   isCompact: LeveragersTheme.hasFloatingComposer && !context.composerFormattingEnabled,
+                   isCompact: isFloating,
                    action: sendMessage)
             .accessibilityLabel(context.viewState.sendButtonAccessibilityLabel)
             .disabled(context.viewState.sendButtonDisabled)
@@ -185,21 +209,15 @@ struct ComposerToolbar: View {
                         placeholder: placeholder,
                         composerFormattingEnabled: context.composerFormattingEnabled,
                         showResizeGrabber: context.composerFormattingEnabled,
-                        isExpanded: $context.composerExpanded) {
+                        isExpanded: $context.composerExpanded,
+                        showsHeader: !isFloating) {
             sendMessage()
         } editAction: {
             context.send(viewAction: .editLastMessage)
         } pasteAction: { providers in
             context.send(viewAction: .handlePasteOrDrop(providers: providers))
         } cancellationAction: {
-            switch context.viewState.composerMode {
-            case .edit:
-                context.send(viewAction: .cancelEdit)
-            case .reply:
-                context.send(viewAction: .cancelReply)
-            default:
-                break
-            }
+            cancelComposerMode()
         } onAppearAction: {
             context.send(viewAction: .composerAppeared)
         }

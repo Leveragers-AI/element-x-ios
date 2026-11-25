@@ -25,6 +25,8 @@ struct MessageComposer: View {
     let composerFormattingEnabled: Bool
     let showResizeGrabber: Bool
     @Binding var isExpanded: Bool
+    /// Leveragers: the floating composer shows the reply or edit header itself, across its whole width.
+    var showsHeader = true
     
     let sendAction: () -> Void
     let editAction: () -> Void
@@ -85,6 +87,14 @@ struct MessageComposer: View {
     
     @ViewBuilder
     private var header: some View {
+        if showsHeader {
+            Self.header(for: mode, cancellationAction: cancellationAction)
+        }
+    }
+    
+    /// The header shown above the text while replying to or editing a message.
+    @ViewBuilder
+    static func header(for mode: ComposerMode, cancellationAction: @escaping () -> Void) -> some View {
         switch mode {
         case .reply(_, let replyDetails, _):
             MessageComposerReplyHeader(replyDetails: replyDetails, action: cancellationAction)
