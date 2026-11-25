@@ -138,6 +138,9 @@ final nonisolated class AppSettings: @unchecked Sendable {
     private(set) var hasSimplifiedRoomCreation = true
     /// Leveragers: the start screen opens the chat server's sign-in page by itself, its button stays for a retry.
     private(set) var opensSignInAutomatically = true
+    /// Leveragers: whether users can block other users or report rooms and messages. Our agents and colleagues
+    /// share one organisation, so the blocking and reporting entry points are hidden.
+    static let allowsBlockingAndReporting = false
     /// Leveragers: the space last picked from the home screen title menu.
     @UserPreference
     var homeScreenSpaceID: String?

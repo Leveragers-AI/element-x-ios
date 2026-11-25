@@ -20,7 +20,7 @@ struct RoomMemberDetailsScreen: View {
                 verificationSection
             }
             
-            if context.viewState.memberDetails != nil, !context.viewState.isOwnMemberDetails {
+            if context.viewState.memberDetails != nil, !context.viewState.isOwnMemberDetails, AppSettings.allowsBlockingAndReporting {
                 blockUserSection
             }
         }

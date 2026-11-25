@@ -86,7 +86,7 @@ struct HomeScreenRoomList: View {
                             Label(L10n.commonSettings, icon: \.settings)
                         }
                         
-                        if context.viewState.reportRoomEnabled {
+                        if context.viewState.reportRoomEnabled, AppSettings.allowsBlockingAndReporting {
                             Button(role: .destructive) {
                                 context.send(viewAction: .reportRoom(roomIdentifier: room.id))
                             } label: {

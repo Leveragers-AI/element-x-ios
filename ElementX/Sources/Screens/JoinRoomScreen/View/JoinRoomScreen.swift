@@ -273,7 +273,7 @@ struct JoinRoomScreen: View {
     
     @ViewBuilder
     var declineAndBlockButton: some View {
-        if let inviter = context.viewState.roomDetails?.inviter {
+        if let inviter = context.viewState.roomDetails?.inviter, AppSettings.allowsBlockingAndReporting {
             Button(L10n.screenJoinRoomDeclineAndBlockButtonTitle, role: .destructive) {
                 context.send(viewAction: .declineInviteAndBlock(userID: inviter.id))
             }

@@ -78,7 +78,7 @@ struct ModerationAndSafetySettingsScreen: View {
     
     @ViewBuilder
     private var blockedUsersSection: some View {
-        if context.viewState.showBlockedUsers {
+        if context.viewState.showBlockedUsers, AppSettings.allowsBlockingAndReporting {
             Section {
                 ListRow(label: .default(title: L10n.commonBlockedUsers,
                                         icon: \.block),

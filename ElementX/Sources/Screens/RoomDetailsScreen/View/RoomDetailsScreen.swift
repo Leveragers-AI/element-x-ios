@@ -36,10 +36,12 @@ struct RoomDetailsScreen: View {
             
             securitySection
             
-            if let recipient = context.viewState.dmRecipientInfo?.member {
-                ignoreUserSection(user: recipient)
-            } else if context.viewState.reportRoomEnabled {
-                reportRoomSection
+            if AppSettings.allowsBlockingAndReporting {
+                if let recipient = context.viewState.dmRecipientInfo?.member {
+                    ignoreUserSection(user: recipient)
+                } else if context.viewState.reportRoomEnabled {
+                    reportRoomSection
+                }
             }
             
             leaveRoomSection

@@ -107,7 +107,7 @@ struct TimelineItemMenuActionProvider {
             actions.append(.viewSource)
         }
         
-        if !item.isOutgoing {
+        if !item.isOutgoing, AppSettings.allowsBlockingAndReporting {
             secondaryActions.append(.report)
         }
         

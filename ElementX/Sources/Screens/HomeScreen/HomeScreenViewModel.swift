@@ -648,7 +648,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         let title = room.isDirect ? L10n.screenInvitesDeclineDirectChatTitle : L10n.screenInvitesDeclineChatTitle
         let message = room.isDirect ? L10n.screenInvitesDeclineDirectChatMessage(roomPlaceholder) : L10n.screenInvitesDeclineChatMessage(roomPlaceholder)
         
-        if await userSession.clientProxy.isReportRoomSupported, let userID = room.inviter?.id {
+        if AppSettings.allowsBlockingAndReporting, await userSession.clientProxy.isReportRoomSupported, let userID = room.inviter?.id {
             state.bindings.alertInfo = .init(id: UUID(),
                                              title: title,
                                              message: message,

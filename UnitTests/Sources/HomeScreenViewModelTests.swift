@@ -339,7 +339,10 @@ final class HomeScreenViewModelTests {
             
             return .invited(roomProxy)
         }
-        context.viewState.bindings.alertInfo?.verticalButtons?[0].action?()
+        // The plain decline is the secondary button when blocking isn't offered.
+        let alertInfo = try #require(context.viewState.bindings.alertInfo)
+        let declineButton = alertInfo.verticalButtons?.first ?? alertInfo.secondaryButton
+        declineButton?.action?()
         
         // Wait for the async action to complete
         try await Task.sleep(for: .milliseconds(100))
@@ -350,7 +353,7 @@ final class HomeScreenViewModelTests {
         #expect(notificationService.removeDeliveredMessageNotificationsForReceivedInvocations == [invitedRoomIDs[0]])
     }
     
-    @Test
+    @Test("Declining an invite offers to block its sender", .enabled(if: AppSettings.allowsBlockingAndReporting, "Leveragers hides blocking and reporting"))
     func declineAndBlockInvite() async throws {
         setupViewModel(invites: .rooms)
         let invitedRoomIDs = context.viewState.rooms.invites.compactMap(\.roomID)
