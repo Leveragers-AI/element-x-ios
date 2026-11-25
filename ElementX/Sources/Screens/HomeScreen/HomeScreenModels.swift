@@ -325,7 +325,9 @@ struct HomeScreenRoomSection: Identifiable, Equatable {
     }
     
     private static func isRoom(_ room: HomeScreenRoom, in spaceFilter: SpaceServiceFilter?) -> Bool {
-        guard let spaceFilter, room.type == .room, !room.isDirect else { return true }
+        // A space whose rooms aren't known yet (its state is still syncing) hides nothing,
+        // rather than every room.
+        guard let spaceFilter, !spaceFilter.descendants.isEmpty, room.type == .room, !room.isDirect else { return true }
         return spaceFilter.descendants.contains(room.roomID ?? room.id)
     }
     

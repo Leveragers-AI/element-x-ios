@@ -461,10 +461,12 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         let topLevelFilters = filters.filter { $0.level == 0 }
         state.spaceMenuFilters = topLevelFilters
         
-        // Re-send the selected space too, so that its descendants stay up to date.
+        // Re-send the selected space too, so that its descendants stay up to date. `SpaceServiceFilter`
+        // equality only compares the space, so also compare its rooms: the SDK fills them in as the
+        // space's state syncs, and they change when a room is added to or removed from the space.
         let selectedID = spaceFilterSubject.value?.id ?? userSettings.app.homeScreenSpaceID
         let filter = topLevelFilters.first { $0.id == selectedID } ?? topLevelFilters.first
-        if let filter, filter != spaceFilterSubject.value {
+        if let filter, filter != spaceFilterSubject.value || filter.descendants != spaceFilterSubject.value?.descendants {
             spaceFilterSubject.send(filter)
         }
     }
