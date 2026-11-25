@@ -25,7 +25,9 @@ struct RoomDetailsScreen: View {
             
             // The invitation flow is different for DMs
             if context.viewState.dmRecipientInfo != nil {
-                inviteToNewRoomSection
+                if AppSettings.allowsInvitingToNewRoomFromDirectMessages {
+                    inviteToNewRoomSection
+                }
                 
                 profileSection
             } else {

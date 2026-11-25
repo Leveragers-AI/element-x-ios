@@ -141,6 +141,9 @@ final nonisolated class AppSettings: @unchecked Sendable {
     /// Leveragers: whether users can block other users or report rooms and messages. Our agents and colleagues
     /// share one organisation, so the blocking and reporting entry points are hidden.
     static let allowsBlockingAndReporting = false
+    /// Leveragers: whether a private chat offers to invite people, which starts a new room with its recipient.
+    /// Hidden for now: we don't want to encourage rooms built around an agent's private chat.
+    static let allowsInvitingToNewRoomFromDirectMessages = false
     /// Leveragers: the space last picked from the home screen title menu.
     @UserPreference
     var homeScreenSpaceID: String?
