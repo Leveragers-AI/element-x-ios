@@ -215,16 +215,18 @@ class CreateRoomScreenViewModel: CreateRoomScreenViewModelType, CreateRoomScreen
             .removeDuplicates()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] accessOptions in
-                guard let self else { return }
-                let availableAccessTypes = accessOptions.availableAccessTypes
-                if !state.showsAccessOptions {
-                    // Leveragers: open to the members of the space, or invite only without one.
-                    state.bindings.selectedAccessType = state.bindings.selectedSpace == nil ? .private : .spaceMembers
-                } else if !availableAccessTypes.contains(state.bindings.selectedAccessType) {
-                    state.bindings.selectedAccessType = .private
-                }
+                self?.updateSelectedAccessType(availableAccessTypes: accessOptions.availableAccessTypes)
             }
             .store(in: &cancellables)
+    }
+    
+    private func updateSelectedAccessType(availableAccessTypes: [CreateRoomScreenAccessType]) {
+        if !state.showsAccessOptions {
+            // Leveragers: open to the members of the space, or invite only without one.
+            state.bindings.selectedAccessType = state.bindings.selectedSpace == nil ? .private : .spaceMembers
+        } else if !availableAccessTypes.contains(state.bindings.selectedAccessType) {
+            state.bindings.selectedAccessType = .private
+        }
     }
     
     private func createRoom() async {

@@ -19,9 +19,9 @@ nonisolated struct WebRoomListSections: Equatable, Sendable {
     static let chatsTag = "chats"
     /// Element Web's synthetic tag for the direct messages section.
     static let directMessagesTag = "im.vector.fake.direct"
-
+    
     static let empty = WebRoomListSections(orderedTags: [directMessagesTag, chatsTag], customSectionNames: [:])
-
+    
     /// The sections shown between Favourites and Low priority, in display order:
     /// custom section tags, `chatsTag` and `directMessagesTag`.
     let orderedTags: [String]
@@ -29,18 +29,18 @@ nonisolated struct WebRoomListSections: Equatable, Sendable {
     let customSectionNames: [String: String]
     /// The custom section tags of each room, by room ID.
     var roomTags: [String: Set<String>] = [:]
-
+    
     init(orderedTags: [String], customSectionNames: [String: String], roomTags: [String: Set<String>] = [:]) {
         self.orderedTags = orderedTags
         self.customSectionNames = customSectionNames
         self.roomTags = roomTags
     }
-
+    
     /// Reads the sections from the content of the `im.vector.web.settings` account data, like Element Web does.
     init(settingsJSON: String) {
         let settings = (try? JSONSerialization.jsonObject(with: Data(settingsJSON.utf8))) as? [String: Any] ?? [:]
         let sectionData = settings["RoomList.CustomSectionData"] as? [String: Any] ?? [:]
-
+        
         var names = [String: String]()
         for (tag, value) in sectionData {
             guard tag.hasPrefix(Self.customTagPrefix),
@@ -51,7 +51,7 @@ nonisolated struct WebRoomListSections: Equatable, Sendable {
             }
             names[tag] = name
         }
-
+        
         let storedOrder = settings["RoomList.OrderedCustomSections"] as? [String] ?? []
         var orderedTags = storedOrder.filter { $0 == Self.chatsTag || $0 == Self.directMessagesTag || names[$0] != nil }
         // Same defaults as Element Web: custom sections above Chats, direct messages above everything.
@@ -61,10 +61,10 @@ nonisolated struct WebRoomListSections: Equatable, Sendable {
         if !orderedTags.contains(Self.directMessagesTag) {
             orderedTags.insert(Self.directMessagesTag, at: 0)
         }
-
+        
         self.init(orderedTags: orderedTags, customSectionNames: names)
     }
-
+    
     /// Keeps only the custom section tags from the content of a room's `m.tag` account data.
     static func customTags(fromTagsJSON data: Data) -> Set<String> {
         let content = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]

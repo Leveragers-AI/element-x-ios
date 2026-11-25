@@ -41,8 +41,9 @@ struct RoomHeaderView: View {
                 .glassEffect(.regular.interactive())
                 .roomHeaderAction(action)
                 // Leveragers: the capsule sits in the middle of the bar, like the titles of our other screens.
-                // Toolbar items get their ideal width, so ask for all of it.
-                .frame(idealWidth: .greatestFiniteMagnitude, maxWidth: .infinity)
+                // Toolbar items get their ideal width, so ask for all of it. Finite: an infinite ideal width
+                // ends up as a bar item layout constraint, which UIKit rejects during navigation transitions.
+                .frame(idealWidth: 10000, maxWidth: .infinity)
                 .padding(.trailing, balancesBackButton ? 52 : 0)
         } else {
             // On iOS 18 and lower, the editor role causes an animation glitch with the back button whenever

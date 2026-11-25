@@ -20,7 +20,7 @@ struct Application: App {
     
     init() {
         LeveragersTheme.apply()
-
+        
         if ProcessInfo.isRunningUITests {
             appCoordinator = UITestsAppCoordinator(appDelegate: appDelegate)
         } else if ProcessInfo.isRunningUnitTests {

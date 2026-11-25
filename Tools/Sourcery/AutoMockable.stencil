@@ -46,7 +46,10 @@ import {{ import }}
     {% endif %}
 {% endmacro %}
 {% macro methodClosureName method %}{% call swiftifyMethodName method.selectorName %}Closure{% endmacro %}
-{% macro closureReturnTypeName method %}{% if method.isOptionalReturnType %}{{ method.unwrappedReturnTypeName }}?{% else %}{{ method.returnTypeName }}{% endif %}{% endmacro %}
+{% macro closureReturnTypeName method %}{% if method.isOptionalReturnType %}{% call optionalReturnTypeName method %}{% else %}{{ method.returnTypeName }}{% endif %}{% endmacro %}
+{# Existential optionals need parentheses: `(any P)?`, as `any P?` doesn't compile before Swift 6.3. #}
+{% macro optionalReturnTypeName method %}{% if method.unwrappedReturnTypeName|hasPrefix:"any " %}({{ method.unwrappedReturnTypeName }})?{% else %}{{ method.unwrappedReturnTypeName }}?{% endif %}{% endmacro %}
+{% macro returnTypeName method %}{% if method.isOptionalReturnType %}{% call optionalReturnTypeName method %}{% else %}{{ method.returnTypeName }}{% endif %}{% endmacro %}
 {% macro methodClosureDeclaration method %}
     {% call accessLevel method.accessLevel %}{% call staticSpecifier method %}nonisolated(unsafe) var {% call methodClosureName method %}: (({% for param in method.parameters %}{{ param.typeName }}{% if not forloop.last %}, {% endif %}{% endfor %}) {% if method.isAsync %}async {% endif %}{% if method.throws %}throws {% endif %}-> {% if method.isInitializer %}Void{% else %}{% call closureReturnTypeName method %}{% endif %})?
 {% endmacro %}
@@ -103,8 +106,8 @@ import {{ import }}
     {% if not method.returnTypeName.isVoid and not method.isInitializer %}
 
     private {% call staticSpecifier method %}let {% call swiftifyMethodName method.selectorName %}ReturnValueLock = NSLock()
-    private {% call staticSpecifier method %}nonisolated(unsafe) var {% call swiftifyMethodName method.selectorName %}UnderlyingReturnValue: {{ '(' if method.returnTypeName.isClosure and not method.isOptionalReturnType }}{{ method.returnTypeName }}{{ ')' if method.returnTypeName.isClosure and not method.isOptionalReturnType }}{{ '!' if not method.isOptionalReturnType }}
-    {% call accessLevel method.accessLevel %}{% call staticSpecifier method %}var {% call swiftifyMethodName method.selectorName %}ReturnValue: {{ '(' if method.returnTypeName.isClosure and not method.isOptionalReturnType }}{{ method.returnTypeName }}{{ ')' if method.returnTypeName.isClosure and not method.isOptionalReturnType }}{{ '!' if not method.isOptionalReturnType }} {
+    private {% call staticSpecifier method %}nonisolated(unsafe) var {% call swiftifyMethodName method.selectorName %}UnderlyingReturnValue: {{ '(' if method.returnTypeName.isClosure and not method.isOptionalReturnType }}{% call returnTypeName method %}{{ ')' if method.returnTypeName.isClosure and not method.isOptionalReturnType }}{{ '!' if not method.isOptionalReturnType }}
+    {% call accessLevel method.accessLevel %}{% call staticSpecifier method %}var {% call swiftifyMethodName method.selectorName %}ReturnValue: {{ '(' if method.returnTypeName.isClosure and not method.isOptionalReturnType }}{% call returnTypeName method %}{{ ')' if method.returnTypeName.isClosure and not method.isOptionalReturnType }}{{ '!' if not method.isOptionalReturnType }} {
         get { {% call swiftifyMethodName method.selectorName %}ReturnValueLock.withLock { {% call swiftifyMethodName method.selectorName %}UnderlyingReturnValue } }
         set { {% call swiftifyMethodName method.selectorName %}ReturnValueLock.withLock { {% call swiftifyMethodName method.selectorName %}UnderlyingReturnValue = newValue } }
     }
@@ -123,7 +126,7 @@ import {{ import }}
     {% endfor %}
     {% endfor %}
     {# @concurrent keeps async mocks suspending like the real implementations would, otherwise with caller isolation inherited by default, intermediate states are never observable. #}
-    {% call accessLevel method.accessLevel %}{% call staticSpecifier method %}{{ '@concurrent ' if method.isAsync }}func {{ method.name }}{{ ' async' if method.isAsync }}{{ ' throws' if method.throws }}{% if not method.returnTypeName.isVoid %} -> {{ method.returnTypeName }}{% endif %} {
+    {% call accessLevel method.accessLevel %}{% call staticSpecifier method %}{{ '@concurrent ' if method.isAsync }}func {{ method.name }}{{ ' async' if method.isAsync }}{{ ' throws' if method.throws }}{% if not method.returnTypeName.isVoid %} -> {% call returnTypeName method %}{% endif %} {
         {% if method.throws %}
         {% call methodThrowableErrorUsage method %}
         {% endif %}

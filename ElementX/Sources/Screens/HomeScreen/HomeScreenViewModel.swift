@@ -54,12 +54,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
                                            bindings: .init(filtersState: .init(userSettings: userSession.userSettings))),
                    mediaProvider: userSession.mediaProvider)
         
-        // The simplified home screen has no search tab, so it keeps the room list search.
-        if userSettings.app.globalSearchEnabled, !userSettings.app.hasSimplifiedHomeScreen {
-            state.isRoomListSearchEnabled = false
-        }
-        state.areFiltersEnabled = !userSettings.app.hasSimplifiedHomeScreen
-        state.hasSimplifiedHeader = userSettings.app.hasSimplifiedHomeScreen
+        configureHomeScreenLayout()
         
         userSession.clientProxy.userProfilePublisher
             .receive(on: DispatchQueue.main)
@@ -104,11 +99,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             .sink { [weak self] filters in
                 guard let self else { return }
                 
-                state.shouldShowSpaceFilters = !filters.isEmpty && !userSettings.app.hasSimplifiedHomeScreen
-                
-                if userSettings.app.hasSimplifiedHomeScreen {
-                    updateSpaceMenu(with: filters)
-                }
+                updateSpaceFilters(with: filters)
                 
                 if let selectedSpaceFilter = spaceFilterSubject.value,
                    !filters.contains(selectedSpaceFilter) {
@@ -151,12 +142,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         spaceFilterSubject
             .receive(on: DispatchQueue.main)
             .sink { [weak self] spaceFilter in
-                guard let self else { return }
-                state.selectedSpaceFilter = spaceFilter
-                // The sectioned list filters by space itself.
-                if userSettings.app.hasSimplifiedHomeScreen {
-                    updateRooms()
-                }
+                self?.selectSpaceFilter(spaceFilter)
             }
             .store(in: &cancellables)
         
@@ -425,6 +411,31 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         } else {
             state.rooms = rooms
         }
+    }
+    
+    private func updateSpaceFilters(with filters: [SpaceServiceFilter]) {
+        if userSettings.app.hasSimplifiedHomeScreen {
+            state.shouldShowSpaceFilters = false
+            updateSpaceMenu(with: filters)
+        } else {
+            state.shouldShowSpaceFilters = !filters.isEmpty
+        }
+    }
+    
+    private func selectSpaceFilter(_ spaceFilter: SpaceServiceFilter?) {
+        state.selectedSpaceFilter = spaceFilter
+        // The sectioned list filters by space itself.
+        if userSettings.app.hasSimplifiedHomeScreen {
+            updateRooms()
+        }
+    }
+    
+    /// Leveragers: the simplified home screen has no filters nor search tab, so it keeps the room list search.
+    private func configureHomeScreenLayout() {
+        let isSimplified = userSettings.app.hasSimplifiedHomeScreen
+        state.isRoomListSearchEnabled = isSimplified || !userSettings.app.globalSearchEnabled
+        state.areFiltersEnabled = !isSimplified
+        state.hasSimplifiedHeader = isSimplified
     }
     
     /// Loads the sections created in Element Web, at most once a minute as it asks the homeserver for every room's tags.

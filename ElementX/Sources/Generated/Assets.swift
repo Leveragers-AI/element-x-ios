@@ -27,6 +27,7 @@ internal enum Asset {
   internal enum Colors {
     internal static let accentColor = ColorAsset(name: "colors/accent-color")
     internal static let backgroundColor = ColorAsset(name: "colors/background-color")
+    internal static let launchScreenColor = ColorAsset(name: "colors/launch-screen-color")
   }
   internal enum Images {
     internal static let appLogo = ImageAsset(name: "images/app-logo")
