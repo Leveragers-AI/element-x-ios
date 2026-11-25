@@ -126,7 +126,7 @@ struct HomeScreenViewState: BindableState {
     var isRoomListSearchEnabled = true
     /// Whether the room list filters (Unread, Favourites…) are shown above the rooms.
     var areFiltersEnabled = true
-    /// Whether the navigation bar only holds the settings and new room buttons around a small space menu.
+    /// Whether the navigation bar only holds the settings and new room buttons.
     var hasSimplifiedHeader = false
     
     var visibleRooms: [HomeScreenRoom] {

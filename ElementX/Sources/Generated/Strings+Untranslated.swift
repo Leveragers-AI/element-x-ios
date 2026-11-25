@@ -10,6 +10,8 @@ import Foundation
 // swiftlint:disable explicit_type_interface function_parameter_count identifier_name line_length
 // swiftlint:disable nesting type_body_length type_name vertical_whitespace_opening_braces
 internal nonisolated enum UntranslatedL10n {
+  /// by Leveragers
+  internal static var screenRoomlistBrandTagline: String { return UntranslatedL10n.tr("Untranslated", "screen_roomlist_brand_tagline") }
   /// Direct messages
   internal static var screenRoomlistSectionDirectMessages: String { return UntranslatedL10n.tr("Untranslated", "screen_roomlist_section_direct_messages") }
   /// Untranslated

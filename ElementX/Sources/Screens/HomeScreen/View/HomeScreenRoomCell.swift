@@ -82,7 +82,7 @@ struct HomeScreenRoomCell: View {
                 }
             }
             // Bold only when there's something new, so unread rooms stand out.
-            .font(room.isHighlighted ? .compound.bodyLGSemibold : .compound.bodyLG.weight(.medium))
+            .font(room.isHighlighted ? .compound.bodyMDSemibold : .compound.bodyMD)
             .foregroundColor(.compound.textPrimary)
             .frame(maxWidth: .infinity, alignment: .leading)
             
@@ -99,6 +99,7 @@ struct HomeScreenRoomCell: View {
             ZStack(alignment: .topLeading) {
                 // Hidden text to maintain consistent height, scaling with dynamic text.
                 Text(" ")
+                    .font(.compound.bodySM)
                     .lastMessageFormatting(hasFailed: false)
                     .hidden()
                     .environment(\.redactionReasons, []) // Always maintain consistent height
@@ -165,7 +166,7 @@ struct HomeScreenRoomCell: View {
     private var lastMessage: some View {
         if let plainLastMessage {
             Text(plainLastMessage)
-                .font(.compound.bodyMD)
+                .font(.compound.bodySM)
                 .lastMessageFormatting(hasFailed: room.lastMessageState == .failed)
         }
     }
@@ -193,7 +194,7 @@ struct HomeScreenRoomCellButtonStyle: ButtonStyle {
 
 private extension View {
     func lastMessageFormatting(hasFailed: Bool) -> some View {
-        foregroundColor(hasFailed ? .compound.textCriticalPrimary : .compound.textSecondary)
+        foregroundColor(hasFailed ? .compound.textCriticalPrimary : .compound.iconTertiary)
             .lineLimit(1)
             .multilineTextAlignment(.leading)
     }
