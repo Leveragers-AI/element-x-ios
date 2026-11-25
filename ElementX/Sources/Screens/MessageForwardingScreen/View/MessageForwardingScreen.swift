@@ -89,8 +89,9 @@ private struct MessageForwardingListRow: View {
     let context: MessageForwardingScreenViewModel.Context
     
     var body: some View {
+        // An empty description would still take a line and push the title up.
         ListRow(label: .avatar(title: room.title,
-                               description: room.description,
+                               description: room.description.isEmpty ? nil : room.description,
                                icon: avatar),
                 kind: .selection(isSelected: isSelected) {
                     context.send(viewAction: .selectRoom(roomID: room.id))
