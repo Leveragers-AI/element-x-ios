@@ -8,16 +8,15 @@ name: Leveragers TestFlight
 #          PROFILE_APP_BASE64, PROFILE_NSE_BASE64, PROFILE_SHARE_BASE64 (App Store provisioning profiles
 #          created through the API). Signing is manual: xcodebuild's own sign-in with the API key was
 #          refused (401) on the first run, the standard API calls with the same key work.
+# Every uploaded build then goes to the open test (external group "Test ouvert", public link): the job
+# open-test, on a Linux machine, waits for Apple's processing, sets "What to Test", adds the build to the
+# group and submits it to Apple's beta review (.github/scripts/testflight_open_test.py).
 on:
   workflow_dispatch:
   push:
     branches: [leveragers]
     paths-ignore:
       - "LEVERAGERS.md"
-
-concurrency:
-  group: leveragers-testflight
-  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -27,6 +26,10 @@ jobs:
     name: Build and upload to TestFlight
     runs-on: xcode-27
     timeout-minutes: 180
+    # One build at a time; the open test job below doesn't hold back the next build.
+    concurrency:
+      group: leveragers-testflight
+      cancel-in-progress: false
     env:
       TEAM_ID: FVBUM2YL8B
       BUILD_NUMBER: ${{ github.run_number }}
@@ -241,3 +244,31 @@ jobs:
         run: |
           [ -n "${SIGNING_KEYCHAIN:-}" ] && security delete-keychain "$SIGNING_KEYCHAIN" || true
           rm -f "${ASC_KEY_PATH:-/nonexistent}"
+
+  open-test:
+    name: Send to the open test (public link)
+    needs: testflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      APP_ID: "6838343028"
+      GROUP_ID: fa62df45-df65-455d-ab10-53e24d792513
+      BUILD_NUMBER: ${{ github.run_number }}
+      WHATS_NEW_FR: Corrections et améliorations
+      WHATS_NEW_EN: Fixes and improvements
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+
+      - name: Wait for Apple, add the build to the open test and submit it to Apple's beta review
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          python3 -m venv "$RUNNER_TEMP/asc-venv"
+          "$RUNNER_TEMP/asc-venv/bin/pip" install --quiet "pyjwt==2.10.1" "cryptography==44.0.0"
+          "$RUNNER_TEMP/asc-venv/bin/python" .github/scripts/testflight_open_test.py
