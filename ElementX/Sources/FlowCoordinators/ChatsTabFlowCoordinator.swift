@@ -395,7 +395,7 @@ class ChatsTabFlowCoordinator: FlowCoordinatorProtocol {
                 case .presentReportRoom(let roomID):
                     stateMachine.processEvent(.presentReportRoomScreen(roomID: roomID))
                 case .presentSpace(let spaceRoomListProxy):
-                    stateMachine.processEvent(.startSpaceFlow, userInfo: .init(animated: true, spaceRoomListProxy: spaceRoomListProxy))
+                    startSpaceFlowOrFirstRoom(spaceRoomListProxy: spaceRoomListProxy, animated: true)
                 case .roomLeft(let roomID):
                     if case .roomList(detailState: .room(let detailStateRoomID)) = stateMachine.state,
                        detailStateRoomID == roomID {
@@ -529,7 +529,7 @@ class ChatsTabFlowCoordinator: FlowCoordinatorProtocol {
             case .verifyUser(let userID):
                 actionsSubject.send(.sessionVerification(.userInitiator(userID: userID)))
             case .continueWithSpaceFlow(let spaceRoomListProxy):
-                stateMachine.processEvent(.startSpaceFlow, userInfo: .init(animated: false, spaceRoomListProxy: spaceRoomListProxy))
+                startSpaceFlowOrFirstRoom(spaceRoomListProxy: spaceRoomListProxy, animated: false)
             case .finished:
                 stateMachine.processEvent(.deselectRoom)
             }
@@ -574,6 +574,15 @@ class ChatsTabFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     // MARK: Space Flow
+    
+    private func startSpaceFlowOrFirstRoom(spaceRoomListProxy: SpaceRoomListProxyProtocol, animated: Bool) {
+        if AppSettings.opensFirstRoomOfSpaces,
+           let roomID = SpaceFirstRoom.roomID(inSpace: spaceRoomListProxy.id, userSession: userSession) {
+            stateMachine.processEvent(.selectRoom(roomID: roomID, via: [], entryPoint: .room), userInfo: .init(animated: animated))
+        } else {
+            stateMachine.processEvent(.startSpaceFlow, userInfo: .init(animated: animated, spaceRoomListProxy: spaceRoomListProxy))
+        }
+    }
     
     private func startSpaceFlow(spaceRoomListProxy: SpaceRoomListProxyProtocol, animated: Bool) {
         let navigationStackCoordinator = NavigationStackCoordinator(navigationSplitCoordinator: navigationSplitCoordinator)

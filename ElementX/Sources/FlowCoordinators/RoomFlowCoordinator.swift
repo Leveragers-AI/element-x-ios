@@ -1540,7 +1540,13 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
             case .verifyUser(let userID):
                 actionsSubject.send(.verifyUser(userID: userID))
             case .continueWithSpaceFlow(let spaceRoomListProxy):
-                stateMachine.tryEvent(.startSpaceFlow, userInfo: EventUserInfo(animated: true, spaceRoomListProxy: spaceRoomListProxy))
+                if AppSettings.opensFirstRoomOfSpaces,
+                   let firstRoomID = SpaceFirstRoom.roomID(inSpace: spaceRoomListProxy.id, userSession: userSession) {
+                    stateMachine.tryEvent(.dismissChildFlow)
+                    stateMachine.tryEvent(.startChildFlow(roomID: firstRoomID, via: [], entryPoint: .room))
+                } else {
+                    stateMachine.tryEvent(.startSpaceFlow, userInfo: EventUserInfo(animated: true, spaceRoomListProxy: spaceRoomListProxy))
+                }
             case .finished:
                 stateMachine.tryEvent(.dismissChildFlow)
             }

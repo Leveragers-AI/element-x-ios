@@ -147,6 +147,9 @@ final nonisolated class AppSettings: @unchecked Sendable {
     static let allowsInvitingToNewRoomFromDirectMessages = false
     /// Leveragers: whether rooms and spaces offer to share their link. Our rooms are only reached from the apps.
     static let allowsSharingRooms = false
+    /// Leveragers: whether a joined space opens its first room instead of its page, as on Element Web.
+    /// The page stays for a space with no room.
+    static let opensFirstRoomOfSpaces = true
     /// Leveragers: the space last picked from the home screen title menu.
     @UserPreference
     var homeScreenSpaceID: String?
