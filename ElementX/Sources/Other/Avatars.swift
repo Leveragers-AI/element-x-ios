@@ -90,6 +90,8 @@ enum UserAvatarSizeOnScreen {
     case map
     case classicAppAccount
     case search
+    /// Leveragers: the people typing, next to the typing dots.
+    case typingIndicator
     /// The native call's large avatar: a one-to-one call, the spotlight and the ringing screen.
     case call
     
@@ -99,6 +101,8 @@ enum UserAvatarSizeOnScreen {
             16
         case .spaceHeader:
             20
+        case .typingIndicator:
+            22
         case .threadSummary:
             24
         case .knockingUsersBannerStack:

@@ -150,6 +150,8 @@ final nonisolated class AppSettings: @unchecked Sendable {
     /// Leveragers: whether a joined space opens its first room instead of its page, as on Element Web.
     /// The page stays for a space with no room.
     static let opensFirstRoomOfSpaces = true
+    /// Leveragers: the typing notice is a bubble with the avatars of the people typing and Element Web's dots, without names.
+    static let showsTypingBubble = true
     /// Leveragers: the space last picked from the home screen title menu.
     @UserPreference
     var homeScreenSpaceID: String?

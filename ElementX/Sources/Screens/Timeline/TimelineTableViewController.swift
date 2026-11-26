@@ -327,6 +327,7 @@ class TimelineTableViewController: UIViewController {
                 
                 cell.contentConfiguration = UIHostingConfiguration {
                     TypingIndicatorView(typingMembers: self.typingMembers)
+                        .environment(\.timelineContext, self.coordinator.context)
                 }
                 .margins(.vertical, 0)
                 .minSize(height: 0)
