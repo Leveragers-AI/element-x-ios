@@ -25,6 +25,10 @@ on:
         description: Also run Element's unit tests (lint + unit tests, no preview snapshots)
         type: boolean
         default: false
+      build:
+        description: Build and upload to TestFlight (off to run only the unit tests, e.g. on a copy of leveragers for comparison)
+        type: boolean
+        default: true
   push:
     branches: [leveragers]
     paths-ignore:
@@ -36,6 +40,7 @@ permissions:
 jobs:
   testflight:
     name: Build and upload to TestFlight
+    if: github.event_name == 'push' || inputs.build
     runs-on: xcode-27
     timeout-minutes: 180
     # One build at a time; the open test job below doesn't hold back the next build.
@@ -266,10 +271,12 @@ jobs:
     runs-on: xcode-27
     timeout-minutes: 90
     steps:
+      # With Git LFS: the media tests read Element's sample files, stored in LFS.
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           persist-credentials: false
+          lfs: true
 
       - name: Setup environment
         run: source ci_scripts/ci_common.sh && setup_github_actions_environment
