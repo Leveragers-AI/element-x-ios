@@ -14,8 +14,9 @@ class UserSessionStore: UserSessionStoreProtocol {
     private let clientFactory: ClientFactoryProtocol
     private let appSettings: AppSettings
     private let analyticsService: AnalyticsServiceProtocol
-    private let networkMonitor: NetworkMonitorProtocol
     private let appHooks: AppHooks
+    private let networkMonitor: NetworkMonitorProtocol
+    private let targetContext: Target.Context
     
     /// Whether or not there are sessions in the store.
     var hasSessions: Bool {
@@ -36,13 +37,15 @@ class UserSessionStore: UserSessionStoreProtocol {
          appSettings: AppSettings,
          analyticsService: AnalyticsServiceProtocol,
          appHooks: AppHooks,
-         networkMonitor: NetworkMonitorProtocol) {
+         networkMonitor: NetworkMonitorProtocol,
+         targetContext: Target.Context) {
         self.keychainController = keychainController
         self.clientFactory = clientFactory
         self.appSettings = appSettings
         self.analyticsService = analyticsService
         self.appHooks = appHooks
         self.networkMonitor = networkMonitor
+        self.targetContext = targetContext
     }
     
     /// Deletes all data stored in the shared container and keychain
@@ -57,8 +60,7 @@ class UserSessionStore: UserSessionStoreProtocol {
             return .failure(.unknownAccount)
         }
         
-        let userSettings = appHooks.userSessionHook.configure(appSettings.userSettings(for: credentials.userID),
-                                                              forHomeserver: credentials.restorationToken.session.homeserverUrl)
+        let userSettings = configuredUserSettings(for: credentials)
         
         switch await restorePreviousLogin(credentials, userSettings: userSettings) {
         case .success(let clientProxy):
@@ -67,6 +69,7 @@ class UserSessionStore: UserSessionStoreProtocol {
             MXLog.error("Failed restoring login with error: \(error)")
             
             // On any restoration failure reset the token and restart
+            userSettings.account.reset()
             keychainController.removeRestorationTokenForUsername(credentials.userID)
             do {
                 try credentials.restorationToken.sessionDirectories.delete()
@@ -100,17 +103,23 @@ class UserSessionStore: UserSessionStoreProtocol {
         }
     }
     
-    func logout(userSession: UserSessionProtocol) {
-        let userID = userSession.clientProxy.userID
+    func logout(userID: String) {
         let credentials = keychainController.restorationTokens().first { $0.userID == userID }
         keychainController.removeRestorationTokenForUsername(userID)
         
         if let credentials {
+            configuredUserSettings(for: credentials).account.reset()
             try? credentials.restorationToken.sessionDirectories.delete()
         }
     }
     
     // MARK: - Private
+    
+    /// The account's settings, with the hooks for its homeserver applied.
+    private func configuredUserSettings(for credentials: KeychainCredentials) -> UserSettings {
+        appHooks.userSessionHook.configure(appSettings.userSettings(for: credentials.userID),
+                                           forHomeserver: credentials.restorationToken.session.homeserverUrl)
+    }
     
     private func buildUserSessionWithClient(_ clientProxy: ClientProxyProtocol, userSettings: UserSettings) async -> UserSessionProtocol {
         let mediaProvider = MediaProvider(mediaLoader: clientProxy.mediaLoader,
@@ -149,7 +158,10 @@ class UserSessionStore: UserSessionStoreProtocol {
             
             MXLog.info("Set up session for user \(credentials.userID) at: \(credentials.restorationToken.sessionDirectories)")
             
-            Task(priority: .low) { await appHooks.remoteSettingsHook.updateCache(using: client) }
+            Task(priority: .low) {
+                await appHooks.remoteSettingsHook.updateCache(using: client)
+                targetContext.update()
+            }
             
             return try await .success(setupProxyForClient(client, userSettings: userSettings))
         } catch UserSessionStoreError.failedSettingUpClientProxy(let error) {

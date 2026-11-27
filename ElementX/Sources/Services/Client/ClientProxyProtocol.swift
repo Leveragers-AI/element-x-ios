@@ -181,9 +181,10 @@ protocol ClientProxyProtocol: AnyObject {
     
     var maxMediaUploadSize: Result<UInt, ClientProxyError> { get async }
     
-    func isOnlyDeviceLeft() async -> Result<Bool, ClientProxyError>
-    
     func hasDevicesToVerifyAgainst() async -> Result<Bool, ClientProxyError>
+    
+    /// Whether the user has joined any encrypted rooms (spaces excluded). Fails when the homeserver doesn't answer in time.
+    func hasEncryptedRooms() async -> Result<Bool, ClientProxyError>
     
     func resumeServices() async
     

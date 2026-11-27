@@ -139,6 +139,8 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             }
             .store(in: &cancellables)
         
+        setupInvitesSubscription()
+        
         userSettings.app.hasSeenNewSoundBannerPublisher
             .sink { [weak self] hasSeenNewSoundBanner in
                 self?.state.shouldShowNewSoundBanner = !hasSeenNewSoundBanner
@@ -228,9 +230,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             actionsSubject.send(.presentReportRoom(roomIdentifier: roomIdentifier))
         case .showSettings:
             actionsSubject.send(.presentSettingsScreen)
-        case .setupRecovery:
-            actionsSubject.send(.presentSecureBackupSettings)
-        case .confirmRecoveryKey:
+        case .setupRecovery, .confirmRecoveryKey:
             actionsSubject.send(.presentRecoveryKeyScreen)
         case .resetEncryption:
             actionsSubject.send(.presentEncryptionResetScreen)
@@ -323,6 +323,8 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
     
     // perphery: ignore - used in release mode
     func presentCrashedLastRunAlert() {
+        guard userSettings.account.bugReportRageshakeConfiguration.publisher.value.isEnabled else { return }
+        
         // Delay setting the alert otherwise it automatically gets dismissed. Same as the force logout one.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [self] in
             state.bindings.alertInfo = AlertInfo(id: UUID(),
@@ -391,6 +393,22 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
                 updateRooms()
                 updateRoomListMode(with: state, hasRooms: !rooms.isEmpty)
             }
+            .store(in: &cancellables)
+    }
+    
+    private func setupInvitesSubscription() {
+        // The main room list is filtered and paginated so the invites are looked up in the static one.
+        userSession.clientProxy.staticRoomSummaryProvider.roomListPublisher
+            .combineLatest(userSettings.app.prominentInvitesFilterEnabledPublisher, spaceFilterSubject)
+            .map { rooms, isEnabled, spaceFilter -> Bool? in
+                guard isEnabled else { return nil }
+                return rooms
+                    .filter { $0.joinRequestType?.isInvite == true }
+                    .contains { spaceFilter?.descendants.contains($0.id) ?? true }
+            }
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .weakAssign(to: \.state.bindings.filtersState.hasInvites, on: self)
             .store(in: &cancellables)
     }
     

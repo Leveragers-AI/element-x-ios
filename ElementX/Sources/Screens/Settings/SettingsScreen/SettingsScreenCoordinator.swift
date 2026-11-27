@@ -11,7 +11,7 @@ import SwiftUI
 
 struct SettingsScreenCoordinatorParameters {
     let userSession: UserSessionProtocol
-    let isBugReportServiceEnabled: Bool
+    let availableSessionsPublisher: CurrentValuePublisher<[UserSessionDetails], Never>
     let isInSecondaryWindow: Bool
     let userIndicatorController: UserIndicatorControllerProtocol
 }
@@ -23,6 +23,7 @@ enum SettingsScreenCoordinatorAction {
     case userStatusEmojiPicker(EmojiPickerScreenContinuation)
     
     case addAccount
+    case switchAccount(userID: String)
     
     case manageAccount(url: URL)
     case linkNewDevice
@@ -58,7 +59,7 @@ final class SettingsScreenCoordinator: CoordinatorProtocol {
     
     init(parameters: SettingsScreenCoordinatorParameters) {
         viewModel = SettingsScreenViewModel(userSession: parameters.userSession,
-                                            isBugReportServiceEnabled: parameters.isBugReportServiceEnabled,
+                                            availableSessionsPublisher: parameters.availableSessionsPublisher,
                                             isInSecondaryWindow: parameters.isInSecondaryWindow,
                                             userIndicatorController: parameters.userIndicatorController)
         
@@ -77,6 +78,8 @@ final class SettingsScreenCoordinator: CoordinatorProtocol {
                     
                 case .addAccount:
                     actionsSubject.send(.addAccount)
+                case .switchAccount(let userID):
+                    actionsSubject.send(.switchAccount(userID: userID))
                     
                 case let .manageAccount(url):
                     actionsSubject.send(.manageAccount(url: url))

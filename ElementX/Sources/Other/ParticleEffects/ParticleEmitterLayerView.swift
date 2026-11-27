@@ -7,9 +7,19 @@
 
 import SwiftUI
 
-enum ParticleEmitterType {
+enum ParticleEmitterType: Equatable {
     case snow
+    /// A short burst of snow, falling from the top of the view and fading out.
+    case snowfall
+    /// A short burst of rain, falling from the top of the view.
+    case rainfall
     case confetti
+    case hearts(colors: [UIColor])
+    case sparkles
+    /// Flames rising from the origin.
+    case fire
+    /// A few bursts going off in turn across the top of the view.
+    case fireworks
 }
 
 final class ParticleEmitterLayerView: UIView {
@@ -41,7 +51,7 @@ final class ParticleEmitterLayerView: UIView {
         CATransaction.setDisableActions(true)
         defer { CATransaction.commit() }
         
-        emitterLayers.forEach(position)
+        emitterLayers.enumerated().forEach { position($1, index: $0) }
         
         // The emitter is positioned using the view's bounds and its window, so a confetti
         // burst started before either of them exists would be emitted off screen and be over
@@ -66,7 +76,13 @@ final class ParticleEmitterLayerView: UIView {
     private func emit() {
         let cells = switch emitterType {
         case .snow: ParticleEmitterBuilder.buildSnowCells()
+        case .snowfall: ParticleEmitterBuilder.buildSnowfallCells()
+        case .rainfall: ParticleEmitterBuilder.buildRainfallCells()
         case .confetti: ParticleEmitterBuilder.buildConfettiCells()
+        case .hearts(let colors): ParticleEmitterBuilder.buildHeartCells(colors: colors)
+        case .sparkles: ParticleEmitterBuilder.buildSparkleCells()
+        case .fire: ParticleEmitterBuilder.buildFireCells()
+        case .fireworks: ParticleEmitterBuilder.buildFireworkCells()
         }
         
         // Start mid simulation so that the snow already covers the view instead of falling into it.
@@ -75,37 +91,58 @@ final class ParticleEmitterLayerView: UIView {
         // Spread across emitters of a couple of cells each, one with more of them randomly never starts emitting.
         for index in stride(from: 0, to: cells.count, by: 2) {
             let emitterLayer = CAEmitterLayer()
-            position(emitterLayer)
+            position(emitterLayer, index: emitterLayers.count)
             emitterLayer.emitterCells = Array(cells[index..<min(index + 2, cells.count)])
-            emitterLayer.beginTime = beginTime
+            // Each firework goes off a little after the previous one.
+            emitterLayer.beginTime = beginTime + (emitterType == .fireworks ? Double(emitterLayers.count) * 0.4 : 0)
             layer.addSublayer(emitterLayer)
             emitterLayers.append(emitterLayer)
         }
         
-        guard emitterType == .confetti else { return }
+        guard emitterType != .snow else { return }
         
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         
+        // Their cells only emit for the duration of a burst already.
+        guard emitterType != .fireworks else { return }
+        
         // A single burst of particles, they keep animating until their lifetime runs out.
         burstTask = Task {
-            guard await (try? Task.sleep(for: .milliseconds(250))) != nil else { return }
+            guard await (try? Task.sleep(for: .milliseconds([.snowfall, .rainfall, .fire].contains(emitterType) ? 1000 : 250))) != nil else { return }
             emitterLayers.forEach { $0.birthRate = 0 }
         }
     }
     
-    private func position(_ emitterLayer: CAEmitterLayer) {
+    private func position(_ emitterLayer: CAEmitterLayer, index: Int) {
         emitterLayer.frame = bounds
         
         switch emitterType {
-        case .snow:
+        case .snow, .snowfall, .rainfall:
             // Falls in from above the view.
             emitterLayer.emitterShape = .line
             emitterLayer.emitterSize = CGSize(width: bounds.width, height: 1)
             emitterLayer.emitterPosition = CGPoint(x: bounds.midX, y: -20)
-        case .confetti:
+        case .confetti, .hearts:
+            // A small area rather than a point, so that every particle fires from a slightly different spot.
+            emitterLayer.emitterShape = .rectangle
+            emitterLayer.emitterSize = CGSize(width: 24, height: 12)
+            emitterLayer.emitterPosition = emitterOrigin.map { convert($0, from: nil) } ?? CGPoint(x: bounds.midX, y: bounds.midY)
+        case .sparkles:
             emitterLayer.emitterShape = .point
             emitterLayer.emitterSize = .zero
             emitterLayer.emitterPosition = emitterOrigin.map { convert($0, from: nil) } ?? CGPoint(x: bounds.midX, y: bounds.midY)
+        case .fire:
+            // A short line gives the flames a base instead of a single point.
+            emitterLayer.emitterShape = .line
+            emitterLayer.emitterSize = CGSize(width: 60, height: 1)
+            emitterLayer.emitterPosition = emitterOrigin.map { convert($0, from: nil) } ?? CGPoint(x: bounds.midX, y: bounds.midY)
+            // Overlapping flames glow in the dark, additive blending would wash them out to white in light mode.
+            emitterLayer.renderMode = traitCollection.userInterfaceStyle == .dark ? .additive : .unordered
+        case .fireworks:
+            let (x, y) = [(0.3, 0.25), (0.7, 0.2), (0.5, 0.35)][index % 3]
+            emitterLayer.emitterShape = .point
+            emitterLayer.emitterSize = .zero
+            emitterLayer.emitterPosition = CGPoint(x: bounds.width * x, y: bounds.height * y)
         }
     }
 }

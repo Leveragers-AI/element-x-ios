@@ -76,9 +76,19 @@ struct DeveloperOptionsScreen: View {
                 Toggle(isOn: $context.mentionsFilterEnabled) {
                     Text("Mentions filter")
                 }
+                
+                Toggle(isOn: $context.prominentInvitesFilterEnabled) {
+                    Text("Prominent invites filter")
+                    Text("Puts the filter first while there are invites and hides it when there are none.")
+                }
             }
             
             Section("Room") {
+                Toggle(isOn: $context.viewSourceEnabled) {
+                    Text("View source")
+                    Text("Adds an option to view the event source in the message menu.")
+                }
+                
                 Toggle(isOn: $context.linkPreviewsEnabled) {
                     Text("Link previews")
                     Text("Follows the timeline media visibility settings.")
@@ -93,6 +103,11 @@ struct DeveloperOptionsScreen: View {
                 
                 Toggle(isOn: $context.reactionCelebrationsEnabled) {
                     Text("Reaction celebrations")
+                }
+                
+                Toggle(isOn: $context.imageDrawingEnabled) {
+                    Text("Draw on images")
+                    Text("Adds a pencil next to crop when sending a picture.")
                 }
             }
             

@@ -22,7 +22,10 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
         actionsSubject.eraseToAnyPublisher()
     }
     
-    init(userSession: UserSessionProtocol, isBugReportServiceEnabled: Bool, isInSecondaryWindow: Bool, userIndicatorController: UserIndicatorControllerProtocol) {
+    init(userSession: UserSessionProtocol,
+         availableSessionsPublisher: CurrentValuePublisher<[UserSessionDetails], Never>,
+         isInSecondaryWindow: Bool,
+         userIndicatorController: UserIndicatorControllerProtocol) {
         userSettings = userSession.userSettings
         clientProxy = userSession.clientProxy
         self.userIndicatorController = userIndicatorController
@@ -30,7 +33,7 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
         super.init(initialViewState: .init(deviceID: userSession.clientProxy.deviceID,
                                            userProfile: userSession.clientProxy.userProfilePublisher.value,
                                            showLinkNewDeviceButton: userSettings.app.linkNewDeviceEnabled,
-                                           showAddAccountButton: userSettings.app.multiAccountEnabled,
+                                           showSwitchAccountsSection: userSettings.app.multiAccountEnabled,
                                            showAccountDeactivation: userSession.clientProxy.canDeactivateAccount,
                                            showDeveloperOptions: userSettings.app.developerOptionsEnabled && !userSettings.app.hasSimplifiedSettings,
                                            showAnalyticsSettings: userSettings.app.canPromptForAnalytics,
@@ -38,7 +41,7 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
                                            showLabs: !userSettings.app.hasSimplifiedSettings,
                                            showAppearanceSettings: !userSettings.app.hasSimplifiedSettings,
                                            showMediaUploadQualitySettings: !userSettings.app.hasSimplifiedSettings,
-                                           isBugReportServiceEnabled: isBugReportServiceEnabled,
+                                           isBugReportServiceEnabled: userSettings.account.bugReportRageshakeConfiguration.publisher.value.isEnabled,
                                            navigationBarVisibility: isInSecondaryWindow ? .hidden : .automatic,
                                            bindings: .init(userSettings: userSettings)),
                    mediaProvider: userSession.mediaProvider)
@@ -54,7 +57,13 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             .store(in: &cancellables)
         
         userSettings.app.multiAccountEnabledPublisher
-            .weakAssign(to: \.state.showAddAccountButton, on: self)
+            .weakAssign(to: \.state.showSwitchAccountsSection, on: self)
+            .store(in: &cancellables)
+        
+        let userID = userSession.clientProxy.userID
+        availableSessionsPublisher
+            .map { $0.filter { $0.userID != userID } }
+            .weakAssign(to: \.state.otherAccounts, on: self)
             .store(in: &cancellables)
         
         userSession.clientProxy.userProfilePublisher
@@ -117,6 +126,8 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             
         case .addAccount:
             actionsSubject.send(.addAccount)
+        case .switchAccount(let userID):
+            actionsSubject.send(.switchAccount(userID: userID))
             
         case let .manageAccount(url):
             actionsSubject.send(.manageAccount(url: url))

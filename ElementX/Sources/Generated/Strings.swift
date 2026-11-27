@@ -464,12 +464,6 @@ internal nonisolated enum L10n {
   internal static var actionYes: String { return L10n.tr("Localizable", "action_yes") }
   /// Yes, try again
   internal static var actionYesTryAgain: String { return L10n.tr("Localizable", "action_yes_try_again") }
-  /// Log Out & Upgrade
-  internal static var bannerMigrateToNativeSlidingSyncAction: String { return L10n.tr("Localizable", "banner_migrate_to_native_sliding_sync_action") }
-  /// %1$@ no longer supports the old protocol. Please log out and log back in to continue using the app.
-  internal static func bannerMigrateToNativeSlidingSyncAppForceLogoutTitle(_ p1: Any) -> String {
-    return L10n.tr("Localizable", "banner_migrate_to_native_sliding_sync_app_force_logout_title", String(describing: p1))
-  }
   /// Your notification ping has been updated—clearer, quicker, and less disruptive.
   internal static var bannerNewSoundMessage: String { return L10n.tr("Localizable", "banner_new_sound_message") }
   /// We’ve refreshed your sounds
@@ -1120,6 +1114,8 @@ internal nonisolated enum L10n {
   internal static var dialogVideoQualitySelectorSubtitleNoFileSize: String { return L10n.tr("Localizable", "dialog_video_quality_selector_subtitle_no_file_size") }
   /// Select video upload quality
   internal static var dialogVideoQualitySelectorTitle: String { return L10n.tr("Localizable", "dialog_video_quality_selector_title") }
+  /// Delete the character before the cursor
+  internal static var emojiPickerA11yBackspace: String { return L10n.tr("Localizable", "emoji_picker_a11y_backspace") }
   /// Activities
   internal static var emojiPickerCategoryActivity: String { return L10n.tr("Localizable", "emoji_picker_category_activity") }
   /// Flags
@@ -1229,10 +1225,6 @@ internal nonisolated enum L10n {
   /// Silent notifications
   internal static var notificationChannelSilent: String { return L10n.tr("Localizable", "notification_channel_silent") }
   /// Plural format key: "%#@COUNT@"
-  internal static func notificationCompatSummaryLineForRoom(_ p1: Int) -> String {
-    return L10n.tr("Localizable", "notification_compat_summary_line_for_room", p1)
-  }
-  /// Plural format key: "%#@COUNT@"
   internal static func notificationCompatSummaryTitle(_ p1: Int) -> String {
     return L10n.tr("Localizable", "notification_compat_summary_title", p1)
   }
@@ -1250,10 +1242,6 @@ internal nonisolated enum L10n {
   internal static var notificationIncomingCall: String { return L10n.tr("Localizable", "notification_incoming_call") }
   /// ** Failed to send - please open room
   internal static var notificationInlineReplyFailed: String { return L10n.tr("Localizable", "notification_inline_reply_failed") }
-  /// Plural format key: "%#@COUNT@"
-  internal static func notificationInvitations(_ p1: Int) -> String {
-    return L10n.tr("Localizable", "notification_invitations", p1)
-  }
   /// Invited you to chat
   internal static var notificationInviteBody: String { return L10n.tr("Localizable", "notification_invite_body") }
   /// %1$@ invited you to chat
@@ -1267,12 +1255,6 @@ internal nonisolated enum L10n {
   /// Mentioned you: %1$@
   internal static func notificationMentionedYouBody(_ p1: Any) -> String {
     return L10n.tr("Localizable", "notification_mentioned_you_body", String(describing: p1))
-  }
-  /// New Messages
-  internal static var notificationNewMessages: String { return L10n.tr("Localizable", "notification_new_messages") }
-  /// Plural format key: "%#@COUNT@"
-  internal static func notificationNewMessagesForRoom(_ p1: Int) -> String {
-    return L10n.tr("Localizable", "notification_new_messages_for_room", p1)
   }
   /// Reacted with %1$@
   internal static func notificationReactionBody(_ p1: Any) -> String {
@@ -1342,6 +1324,8 @@ internal nonisolated enum L10n {
   internal static var rageshakeDetectionDialogContent: String { return L10n.tr("Localizable", "rageshake_detection_dialog_content") }
   /// Add attachment
   internal static var richTextEditorA11yAddAttachment: String { return L10n.tr("Localizable", "rich_text_editor_a11y_add_attachment") }
+  /// Add emoji
+  internal static var richTextEditorA11yAddEmoji: String { return L10n.tr("Localizable", "rich_text_editor_a11y_add_emoji") }
   /// Toggle bullet list
   internal static var richTextEditorBulletList: String { return L10n.tr("Localizable", "rich_text_editor_bullet_list") }
   /// Cancel and close text formatting
@@ -1662,12 +1646,8 @@ internal nonisolated enum L10n {
   internal static var screenBugReportSendNotificationSettingsTitle: String { return L10n.tr("Localizable", "screen_bug_report_send_notification_settings_title") }
   /// View logs
   internal static var screenBugReportViewLogs: String { return L10n.tr("Localizable", "screen_bug_report_view_logs") }
-  /// Other
-  internal static var screenChangeAccountProviderOther: String { return L10n.tr("Localizable", "screen_change_account_provider_other") }
   /// Use a different account provider, such as your own private server or a work account.
   internal static var screenChangeAccountProviderSubtitle: String { return L10n.tr("Localizable", "screen_change_account_provider_subtitle") }
-  /// Change account provider
-  internal static var screenChangeAccountProviderTitle: String { return L10n.tr("Localizable", "screen_change_account_provider_title") }
   /// App Store
   internal static var screenChangeServerErrorElementProRequiredActionIos: String { return L10n.tr("Localizable", "screen_change_server_error_element_pro_required_action_ios") }
   /// The Element Pro app is required on %1$@. Please download it from the store.
@@ -1699,8 +1679,6 @@ internal nonisolated enum L10n {
   internal static func screenChangeServerErrorUnauthorizedHomeserverTitle(_ p1: Any) -> String {
     return L10n.tr("Localizable", "screen_change_server_error_unauthorized_homeserver_title", String(describing: p1))
   }
-  /// Homeserver URL
-  internal static var screenChangeServerFormHeader: String { return L10n.tr("Localizable", "screen_change_server_form_header") }
   /// Enter a domain address.
   internal static var screenChangeServerFormNotice: String { return L10n.tr("Localizable", "screen_change_server_form_notice") }
   /// Sign in
@@ -2432,6 +2410,8 @@ internal nonisolated enum L10n {
   internal static var screenMediaDetailsUploadedOn: String { return L10n.tr("Localizable", "screen_media_details_uploaded_on") }
   /// Failed selecting media, please try again.
   internal static var screenMediaPickerErrorFailedSelection: String { return L10n.tr("Localizable", "screen_media_picker_error_failed_selection") }
+  /// Draw
+  internal static var screenMediaUploadPreviewA11yDraw: String { return L10n.tr("Localizable", "screen_media_upload_preview_a11y_draw") }
   /// Captions might not be visible to people using older apps.
   internal static var screenMediaUploadPreviewCaptionWarning: String { return L10n.tr("Localizable", "screen_media_upload_preview_caption_warning") }
   /// Tap to change the video upload quality
@@ -4198,10 +4178,6 @@ internal nonisolated enum L10n {
   internal static var troubleshootNotificationsTestDetectPushProviderDescription: String { return L10n.tr("Localizable", "troubleshoot_notifications_test_detect_push_provider_description") }
   /// No push provider support found.
   internal static var troubleshootNotificationsTestDetectPushProviderFailure: String { return L10n.tr("Localizable", "troubleshoot_notifications_test_detect_push_provider_failure") }
-  /// Plural format key: "%#@COUNT@"
-  internal static func troubleshootNotificationsTestDetectPushProviderSuccess(_ p1: Int) -> String {
-    return L10n.tr("Localizable", "troubleshoot_notifications_test_detect_push_provider_success", p1)
-  }
   /// The application was built with support for: %1$@
   internal static func troubleshootNotificationsTestDetectPushProviderSuccess2(_ p1: Any) -> String {
     return L10n.tr("Localizable", "troubleshoot_notifications_test_detect_push_provider_success_2", String(describing: p1))

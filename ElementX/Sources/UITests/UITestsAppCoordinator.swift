@@ -286,8 +286,9 @@ class MockScreen: Identifiable {
             let navigationStackCoordinator = NavigationStackCoordinator()
             let clientProxy = ClientProxyMock(.init(userID: "@mock:client.com", roomSummaryProvider: RoomSummaryProviderMock(.init(state: .loaded(.mockRooms)))))
             let userSession = UserSessionMock(.init(clientProxy: clientProxy))
-            let coordinator = BugReportScreenCoordinator(parameters: .init(bugReportService: BugReportServiceMock(.init()),
-                                                                           userSession: userSession,
+            let coordinator = BugReportScreenCoordinator(parameters: .init(flow: .userSession(userSession),
+                                                                           bugReportService: BugReportServiceMock(.init()),
+                                                                           bugReportHook: DefaultBugReportHook(),
                                                                            userIndicatorController: nil,
                                                                            screenshot: nil,
                                                                            isModallyPresented: true))
@@ -636,15 +637,59 @@ class MockScreen: Identifiable {
             userSettings.account.hasRunIdentityConfirmationOnboarding = true
             userSettings.app.hasRunNotificationPermissionsOnboarding = true
             userSettings.app.analyticsConsentState = .optedOut
+            userSettings.app.multiAccountEnabled = true
+            userSettings.app.hasSeenMultiAccountAnnouncement = true
             
             let clientProxy = ClientProxyMock(.init(userID: userID,
                                                     deviceID: "MOCKCLIENT",
                                                     roomSummaryProvider: RoomSummaryProviderMock(.init(state: .loaded(.mockRooms)))))
-            let userSession = UserSessionMock(.init(clientProxy: clientProxy, userSettings: userSettings))
-            let userSessionManager = UserSessionManagerMock(.init())
-            if id == .rootFlowSignedIn {
-                userSessionManager.activeSession = userSession
-                userSessionManager.sessionsPublisher = .init([userSession])
+            // Presents a room's call straight away, as the manager does without a native call stack.
+            let callManagerActions = PassthroughSubject<ElementCallManagerAction, Never>()
+            let elementCallManager = ElementCallManagerMock(.init(actionsPublisher: callManagerActions.eraseToAnyPublisher()))
+            let elementCallService = ElementCallServiceMock(.init(userID: userID))
+            elementCallService.requestCallRoomProxyIsVoiceCallClosure = { roomProxy, isVoiceCall in
+                callManagerActions.send(.callScreen(.present(userID: userID, kind: .webView(.init(roomProxy: roomProxy, isVoiceCall: isVoiceCall)))))
+            }
+            
+            let userSession = UserSessionMock(.init(clientProxy: clientProxy, userSettings: userSettings, elementCallService: elementCallService))
+            
+            let bobUserID = "@bob:client.com"
+            let bobUserSettings = appSettings.userSettings(for: bobUserID)
+            bobUserSettings.account.hasRunIdentityConfirmationOnboarding = true
+            let bobClientProxy = ClientProxyMock(.init(userID: bobUserID,
+                                                       deviceID: "MOCKCLIENT",
+                                                       displayName: "Bob",
+                                                       roomSummaryProvider: RoomSummaryProviderMock(.init(state: .loaded(.mockRooms)))))
+            let bobUserSession = UserSessionMock(.init(clientProxy: bobClientProxy, userSettings: bobUserSettings))
+            
+            let userSessionManagerCallbacks = PassthroughSubject<UserSessionManagerCallback, Never>()
+            let userSessionManager = UserSessionManagerMock(.init(callbacksPublisher: userSessionManagerCallbacks.eraseToAnyPublisher()))
+            // Keeps the accounts in order with the first one active, as the real manager does.
+            @MainActor func setSessions(_ sessions: [UserSessionProtocol]) {
+                userSessionManager.activeSession = sessions.first
+                userSessionManager.sessionsPublisher = .init(sessions)
+                userSessionManager.userIDs = sessions.map(\.clientProxy.userID)
+            }
+            @MainActor func sessions(excluding userID: String) -> [UserSessionProtocol] {
+                userSessionManager.sessionsPublisher.value.filter { $0.clientProxy.userID != userID }
+            }
+            
+            setSessions(id == .rootFlowSignedIn ? [userSession, bobUserSession] : [])
+            userSessionManager.sessionForClosure = { userID in
+                userSessionManager.sessionsPublisher.value.first { $0.clientProxy.userID == userID }
+            }
+            userSessionManager.selectAccountUserIDClosure = { userID in
+                guard let selectedSession = userSessionManager.session(for: userID) else { return }
+                setSessions([selectedSession] + sessions(excluding: userID))
+                userSessionManagerCallbacks.send(.didSelectAccount(userID: userID))
+            }
+            userSessionManager.logoutUserIDClosure = { @MainActor userID in
+                setSessions(sessions(excluding: userID))
+                userSessionManagerCallbacks.send(.didRemoveAccount(userID: userID, error: nil))
+            }
+            // The signed in session is a bare mock, use the populated one instead.
+            userSessionManager.addNewSessionClosure = { _ in
+                setSessions([userSession] + sessions(excluding: userID))
             }
             
             let appMediator = AppMediatorMock(.init())
@@ -652,6 +697,7 @@ class MockScreen: Identifiable {
             
             let flowCoordinator = RootFlowCoordinator(navigationRootCoordinator: navigationRootCoordinator,
                                                       userSessionManager: userSessionManager,
+                                                      elementCallManager: elementCallManager,
                                                       appLockService: AppLockService(keychainController: KeychainControllerMock(),
                                                                                      appSettings: appSettings),
                                                       bugReportService: BugReportServiceMock(.init()),
@@ -660,25 +706,10 @@ class MockScreen: Identifiable {
                                                       appHooks: AppHooks(),
                                                       analyticsService: analytics,
                                                       userIndicatorController: UserIndicatorControllerMock(),
+                                                      targetContext: .mock,
                                                       authenticationServiceFactory: AuthenticationServiceFactoryMock(.init()))
             
-            flowCoordinator.actionsPublisher
-                .sink { [weak flowCoordinator] action in
-                    switch action {
-                    case .signInComplete:
-                        // The signed in session is a bare mock, use the populated one instead.
-                        userSessionManager.activeSession = userSession
-                        userSessionManager.sessionsPublisher = .init([userSession])
-                        flowCoordinator?.handleAppRoute(.roomList, animated: true)
-                    case .logout:
-                        flowCoordinator?.handleAppRoute(.authentication, animated: true)
-                    case .clearCache, .forceLogout:
-                        break
-                    }
-                }
-                .store(in: &cancellables)
-            
-            flowCoordinator.handleAppRoute(id == .rootFlowSignedIn ? .roomList : .authentication, animated: false)
+            flowCoordinator.handleAppRoute(id == .rootFlow ? .authentication : .roomList, animated: false)
             
             retainedState.append(flowCoordinator)
             
@@ -768,7 +799,7 @@ class MockScreen: Identifiable {
             coordinator.start()
             
             return navigationStackCoordinator
-        case .encryptionReset:
+        case .encryptionReset, .encryptionResetNoOptions:
             let recoveryState: SecureBackupRecoveryState = id == .encryptionSettings ? .enabled : .incomplete
             let clientProxy = ClientProxyMock(.init(userID: "@mock:client.com", recoveryState: recoveryState))
             let userSession = UserSessionMock(.init(clientProxy: clientProxy))
@@ -781,7 +812,8 @@ class MockScreen: Identifiable {
                                                                                appMediator: AppMediatorMock(.init()),
                                                                                userIndicatorController: userIndicatorController,
                                                                                navigationStackCoordinator: navigationStackCoordinator,
-                                                                               windowManger: windowManager))
+                                                                               windowManger: windowManager,
+                                                                               mode: id == .encryptionResetNoOptions ? .noOptionsWithEncryptedRooms : .hasConfirmationOptions))
             
             retainedState.append(coordinator)
             coordinator.start()

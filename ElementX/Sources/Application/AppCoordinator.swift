@@ -15,7 +15,6 @@ import Sentry
 import SwiftUI
 import Version
 
-// swiftlint:disable:next type_body_length
 class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, SecureWindowManagerDelegate {
     private let stateMachine: AppCoordinatorStateMachine
     private let navigationRootCoordinator: NavigationRootCoordinator
@@ -37,11 +36,6 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
     
     private var backgroundRefreshSyncObserver: AnyCancellable?
     
-    private var userSessionMigrationsOldVersion: Version?
-    /// The accounts migrated since launch, so restoring one again (e.g. after clearing the cache) never migrates it twice.
-    private var migratedUserIDs: Set<String> = []
-    /// Restores the signed in accounts. Cancelled when signing out or clearing the cache.
-    private var restorationTask: Task<Void, Never>?
     private var userSession: UserSessionProtocol? {
         userSessionManager.activeSession
     }
@@ -54,10 +48,7 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
     private var appDelegateObserver: AnyCancellable?
     /// Becomes `true` once the app is no longer waiting on a session restore, whatever the outcome.
     private let isSessionRestoredSubject = CurrentValueSubject<Bool, Never>(false)
-    private var clientProxyObserver: AnyCancellable?
     private var cancellables = Set<AnyCancellable>()
-    /// A continuation to signal when the caches have been cleared successfully (or failed).
-    private var clearCacheContinuation: AsyncStream<Result<Void, ClearCacheError>>.Continuation?
     
     let windowManager: SecureWindowManagerProtocol
     let notificationManager: NotificationManagerProtocol
@@ -67,6 +58,7 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
     /// A reply made from a notification before its account was live.
     private var storedInlineReply: PendingInlineReplyDetails?
     
+    // swiftlint:disable:next function_body_length
     init(appDelegate: AppDelegate) {
         let appHooks = AppHooks()
         appHooks.setUp()
@@ -84,10 +76,13 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
         let appSettings = appHooks.appSettingsHook.configure(AppSettings(store: userDefaults))
         self.appSettings = appSettings
         
+        let keychainController = KeychainController(service: .sessions,
+                                                    accessGroup: InfoPlistReader.main.keychainAccessGroupIdentifier)
+        
         targetConfiguration = Target.mainApp.configure(logLevel: appSettings.logLevel,
                                                        traceLogPacks: appSettings.traceLogPacks,
                                                        sentryURL: appSettings.bugReportSentryRustURL,
-                                                       rageshakeURL: appSettings.bugReportRageshakeURL,
+                                                       keychainController: keychainController,
                                                        appHooks: appHooks)
         
         let appName = InfoPlistReader.main.bundleDisplayName
@@ -95,9 +90,14 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
         let appBuild = InfoPlistReader.main.bundleVersion
         MXLog.info("\(appName) \(appVersion) (\(appBuild))")
         
+        guard let currentVersion = Version(appVersion) else {
+            fatalError("The app's version number **must** use semver for migration purposes.")
+        }
+        
         if ProcessInfo.processInfo.environment["RESET_APP_SETTINGS"].map(Bool.init) == true {
             appSettings.resetAllSettings()
         }
+        let previousVersion = appSettings.lastVersionLaunched.flatMap(Version.init)
         
         self.appDelegate = appDelegate
         self.appHooks = appHooks
@@ -118,19 +118,20 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
         
         navigationRootCoordinator.setRootCoordinator(SplashScreenCoordinator())
         
-        let keychainController = KeychainController(service: .sessions,
-                                                    accessGroup: InfoPlistReader.main.keychainAccessGroupIdentifier)
         let userSessionStore = UserSessionStore(keychainController: keychainController,
                                                 appSettings: appSettings,
                                                 analyticsService: analyticsService,
                                                 appHooks: appHooks,
-                                                networkMonitor: networkMonitor)
+                                                networkMonitor: networkMonitor,
+                                                targetContext: targetConfiguration.context)
         notificationManager = NotificationManager(notificationCenter: UNUserNotificationCenter.current(), appSettings: appSettings)
         userSessionManager = UserSessionManager(userSessionStore: userSessionStore,
                                                 appSettings: appSettings,
                                                 notificationManager: notificationManager,
                                                 liveLocationManager: LiveLocationManager(appSettings: appSettings),
-                                                elementCallManager: elementCallManager)
+                                                elementCallManager: elementCallManager,
+                                                userSessionMigrator: UserSessionMigrator(newVersion: currentVersion, oldAppVersion: previousVersion, appSettings: appSettings, appMediator: appMediator),
+                                                signposter: analyticsService.signpost)
         
         let appLockService = AppLockService(keychainController: keychainController, appSettings: appSettings)
         let appLockNavigationCoordinator = NavigationRootCoordinator()
@@ -138,20 +139,21 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
                                                         navigationCoordinator: appLockNavigationCoordinator,
                                                         appSettings: appSettings)
         
-        bugReportService = BugReportService(rageshakeURLPublisher: appSettings.bugReportRageshakeURL.publisher,
-                                            applicationID: appSettings.bugReportApplicationID,
+        bugReportService = BugReportService(applicationID: appSettings.bugReportApplicationID,
                                             sdkGitSHA: sdkGitSha(),
                                             appHooks: appHooks)
         
         rootFlowCoordinator = RootFlowCoordinator(navigationRootCoordinator: navigationRootCoordinator,
                                                   userSessionManager: userSessionManager,
+                                                  elementCallManager: elementCallManager,
                                                   appLockService: appLockService,
                                                   bugReportService: bugReportService,
                                                   appMediator: appMediator,
                                                   appSettings: appSettings,
                                                   appHooks: appHooks,
                                                   analyticsService: analyticsService,
-                                                  userIndicatorController: userIndicatorController)
+                                                  userIndicatorController: userIndicatorController,
+                                                  targetContext: targetConfiguration.context)
         
         Self.setupSentry(bugReportService: bugReportService, appSettings: appSettings, analytics: analyticsService)
         
@@ -161,11 +163,7 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
         
         configureNotificationManager()
         
-        guard let currentVersion = Version(InfoPlistReader(bundle: .main).bundleShortVersionString) else {
-            fatalError("The app's version number **must** use semver for migration purposes.")
-        }
-        
-        if let previousVersion = appSettings.lastVersionLaunched.flatMap(Version.init) {
+        if let previousVersion {
             performMigrationsIfNecessary(from: previousVersion, to: currentVersion)
         } else {
             // The app has been deleted since the previous run. Reset everything.
@@ -368,10 +366,6 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
         guard let roomID = content.roomID else {
             return true
         }
-        // Only the active account's rooms can be on screen.
-        if let receiverID = content.receiverID, receiverID != userSession?.clientProxy.userID {
-            return true
-        }
         return !rootFlowCoordinator.isDisplayingRoomScreen(withRoomID: roomID)
     }
     
@@ -458,131 +452,6 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
                 }
             }
         }
-        
-        // Store the old version to run additional migrations on the user session once it has been set up.
-        userSessionMigrationsOldVersion = oldVersion
-    }
-    
-    // swiftlint:disable:next cyclomatic_complexity
-    private func performUserSessionMigrations(_ userSession: UserSessionProtocol) async {
-        guard let oldVersion = userSessionMigrationsOldVersion,
-              migratedUserIDs.insert(userSession.clientProxy.userID).inserted else {
-            return
-        }
-        
-        MXLog.info("Migrating user session from \(oldVersion)")
-        
-        // Vacuuming can outlast a background task, getting the app killed before the migrations below run.
-        if appMediator.appState != .background {
-            MXLog.info("Performing client store optimizations.")
-            await userSession.clientProxy.optimizeStores()
-            MXLog.info("Finished optimizing client stores.")
-        }
-        
-        if oldVersion < Version(1, 6, 0) {
-            MXLog.info("Migrating to v1.6.0, marking identity confirmation onboarding as ran.")
-            userSession.userSettings.account.hasRunIdentityConfirmationOnboarding = true
-            userSession.userSettings.app.hasRunNotificationPermissionsOnboarding = true
-        }
-        
-        if oldVersion < Version(25, 6, 0) {
-            MXLog.info("Migrating to version 25.06.0, migrating timeline media settings to account data.")
-            performSettingsToAccountDataMigration(userSession: userSession)
-        }
-        
-        if oldVersion < Version(25, 9, 2) {
-            MXLog.info("Migrating to version 25.09.2, triggering sync to ensure m.space state is up to date.")
-            await userSession.clientProxy.expireSyncSessions()
-        }
-        
-        if oldVersion < Version(25, 10, 0) {
-            MXLog.info("Migrating to version 25.10.0, showing new sound banner to existing user.")
-            appSettings.hasSeenNewSoundBanner = false
-        }
-        
-        if oldVersion < Version(26, 07, 3) {
-            MXLog.info("Migrating to version 26.07.3, marking the app as previously signed in.")
-            appSettings.hasSignedInBefore = true
-        }
-        
-        if oldVersion < Version(26, 10, 1) {
-            MXLog.info("Migrating to version 26.10.1, moving initial 'session specific' settings.")
-            userSession.userSettings.account.migrateAppSettingsValue(\.hasRunIdentityConfirmationOnboardingKey)
-            userSession.userSettings.account.migrateAppSettingsValue(\.searchBreadcrumbsKey)
-        }
-        
-        if oldVersion < Version(26, 10, 2) {
-            MXLog.info("Migrating to version 26.10.2, moving visible account settings.")
-            userSession.userSettings.account.migrateAppSettingsValue(\.showAllRoomListActivityKey)
-            userSession.userSettings.account.migrateAppSettingsValue(\.selectedNotificationToneKey)
-            userSession.userSettings.account.migrateAppSettingsValue(\.sharePresenceKey)
-            
-            // Make sure system notification sounds are available in the new directory.
-            if let selectedNotificationTone = userSession.userSettings.account.selectedNotificationTone {
-                do {
-                    MXLog.info("Copying the selected system notification sound.")
-                    try NotificationToneManager.copySystemToneIfNeeded(selectedNotificationTone)
-                } catch {
-                    MXLog.error("Failed migrating the selected notification sound: \(error)")
-                }
-            }
-        }
-        
-        if oldVersion < Version(26, 10, 3) {
-            MXLog.info("Migrating to version 26.10.3, moving the notifications switch into the account.")
-            userSession.userSettings.account.migrateAppSettingsValue(\.enableNotificationsKey)
-        }
-        
-        if oldVersion < Version(26, 10, 4) {
-            MXLog.info("Migrating to version 26.10.4, moving the seen invites into the account.")
-            userSession.userSettings.account.migrateAppSettingsValue(\.seenInvitesKey)
-        }
-    }
-    
-    /// This could be removed once the adoption of 25.06.x is widespread.
-    private func performSettingsToAccountDataMigration(userSession: UserSessionProtocol) {
-        guard let userDefaults = UserDefaults(suiteName: InfoPlistReader.main.appGroupIdentifier) else {
-            return
-        }
-        
-        let hideInviteAvatars = userDefaults.value(forKey: "hideInviteAvatars") as? Bool
-        let timelineMediaVisibility = userDefaults
-            .data(forKey: "timelineMediaVisibility")
-            .flatMap {
-                try? JSONDecoder().decode(TimelineMediaVisibility.self, from: $0)
-            }
-        let hideTimelineMedia = userDefaults.value(forKey: "hideTimelineMedia") as? Bool
-        
-        guard hideInviteAvatars != nil || timelineMediaVisibility != nil || hideTimelineMedia != nil else {
-            // No migration needed, no local settings found.
-            return
-        }
-        
-        Task {
-            switch await userSession.clientProxy.fetchMediaPreviewConfiguration() {
-            case let .success(config):
-                guard config == nil else {
-                    // Found a server configuration, no need to migrate.
-                    userDefaults.removeObject(forKey: "hideInviteAvatars")
-                    userDefaults.removeObject(forKey: "timelineMediaVisibility")
-                    userDefaults.removeObject(forKey: "hideTimelineMedia")
-                    return
-                }
-                
-                if let hideInviteAvatars, case .success = await userSession.clientProxy.setHideInviteAvatars(hideInviteAvatars) {
-                    userDefaults.removeObject(forKey: "hideInviteAvatars")
-                }
-                
-                if let timelineMediaVisibility, case .success = await userSession.clientProxy.setTimelineMediaVisibility(timelineMediaVisibility) {
-                    userDefaults.removeObject(forKey: "timelineMediaVisibility")
-                } else if let hideTimelineMedia, case .success = await userSession.clientProxy.setTimelineMediaVisibility(hideTimelineMedia ? .never : .always) {
-                    userDefaults.removeObject(forKey: "hideTimelineMedia")
-                }
-            case let .failure(error):
-                MXLog.error("Could not perform migration, failed to fetch media preview config: \(error)")
-                return
-            }
-        }
     }
     
     /// Clears the keychain, app support directory etc ready for a fresh use.
@@ -643,34 +512,13 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
             }
             
             switch (context.fromState, context.event, context.toState) {
-            case (.initial, .startWithAuthentication, .signedOut):
+            case (.initial, .startWithAuthentication, .running):
                 startAuthentication()
-            case (.signedOut, .createdUserSession, .signedIn):
-                setupUserSession(isNewLogin: true)
-                restoreUserSessions()
             case (.initial, .startWithExistingSession, .restoringSession):
                 restoreUserSessions()
-            case (.restoringSession, .failedRestoringSession, .signedOut):
-                showLoginErrorToast()
-                if let clearCacheContinuation = clearCacheContinuation.take() {
-                    cancelClearCache(clearCacheContinuation)
-                }
-                startAuthentication()
-            case (.restoringSession, .createdUserSession, .signedIn):
-                setupUserSession(isNewLogin: false)
-                
-            case (.signingOut, .signOut, .signingOut):
-                // We can ignore signOut when already in the process of signing out,
-                // such as the SDK sending an authError due to token invalidation.
+            case (.restoringSession, .restoredSession, .running),
+                 (.restoringSession, .failedRestoringSession, .running):
                 break
-            case (_, .signOut, .signingOut):
-                logout()
-            case (.signingOut(let disableAppLock), .completedSigningOut, .signedOut):
-                if disableAppLock {
-                    disableAppLockAfterSigningOut()
-                }
-            case (.signedIn, .clearCache, .initial):
-                clearCache()
             default:
                 fatalError("Unknown transition: \(context)")
             }
@@ -686,21 +534,8 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
     }
     
     private func restoreUserSessions() {
-        let previousRestorationTask = restorationTask
-        restorationTask = Task {
-            // A cancelled restoration may still be building a client, which mustn't share a store with a new one.
-            await previousRestorationTask?.value
-            
-            await userSessionManager.restoreSessions { [weak self] userSession in
-                await self?.performUserSessionMigrations(userSession)
-            } didAdd: { [weak self] userSession in
-                self?.showActiveSessionIfRestoring()
-                self?.sendStoredInlineReply(from: userSession)
-            }
-            
-            guard !Task.isCancelled else { return }
-            // An account that was already live becomes the active one when those before it fail (e.g. after clearing the cache).
-            showActiveSessionIfRestoring()
+        Task {
+            await userSessionManager.restoreSessions()
             
             if stateMachine.state == .restoringSession {
                 MXLog.error("Failed to restore an existing session.")
@@ -709,12 +544,12 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
         }
     }
     
-    /// Shows the active session as soon as it's live, while the app is waiting for one.
-    private func showActiveSessionIfRestoring() {
-        guard stateMachine.state == .restoringSession, userSession != nil else { return }
+    /// Resumes the services once a session is live, and stops waiting for a restore.
+    private func finishSessionRestoration() {
+        guard stateMachine.state == .restoringSession else { return }
         
         Task { await resumeClientServices() }
-        stateMachine.processEvent(.createdUserSession)
+        stateMachine.processEvent(.restoredSession)
     }
     
     /// Sends a reply made from a notification before its account was live.
@@ -734,91 +569,26 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
         rootFlowCoordinator.handleAppRoute(.authentication, animated: true)
     }
     
-    func handleSignedInUserSession(_ userSession: UserSessionProtocol) {
-        // A new login has nothing to migrate.
-        migratedUserIDs.insert(userSession.clientProxy.userID)
-        userSessionManager.add(userSession)
-        Task { await resumeClientServices() }
-        stateMachine.processEvent(.createdUserSession)
-    }
-    
-    private func setupUserSession(isNewLogin: Bool) {
-        guard let userSession else {
-            fatalError("User session not setup")
-        }
-        
-        if let serverName = userSession.clientProxy.userIDServerName {
-            analyticsService.signpost.addGlobalTag(.homeserver, value: serverName)
-        }
-        
-        if !isNewLogin {
-            analyticsService.signpost.startTransaction(.cachedRoomList)
-        }
-        
-        if let continuation = clearCacheContinuation.take() {
-            restoreUserSessionFlowAfterClearCache(continuation)
-        } else {
-            rootFlowCoordinator.handleAppRoute(.roomList, animated: true)
+    /// Logs out every account, then disables App Lock if requested (e.g. when the user forgot their PIN).
+    private func logoutAllAccounts(disableAppLock: Bool) async {
+        await userSessionManager.logoutAll()
+        if disableAppLock {
+            await disableAppLockAfterSigningOut()
         }
     }
     
-    private func logout() {
-        guard let userSession else {
-            fatalError("User session not setup")
+    private func disableAppLockAfterSigningOut() async {
+        // Ensure the navigation stack has settled.
+        try? await Task.sleep(for: .milliseconds(500))
+        
+        // Never unlock while an account remains, its flow would be shown without a PIN.
+        guard userSessionManager.userIDs.isEmpty else {
+            MXLog.error("Not disabling App Lock, an account is still signed in.")
+            return
         }
         
-        // TODO: With other accounts signed in, switch to the most recently used one instead (element-hq/element-meta#3325).
-        restorationTask?.cancel()
-        windowManager.closeAllSecondaryWindows()
-        
-        showLoadingIndicator()
-        
-        Task { await pauseClientServices(isBackgroundTask: false) }
-        
-        // Show authentication before the session goes, under the loading indicator.
-        startAuthentication()
-        
-        Task {
-            // Delete the pusher and stop the live location shares while the session can still reach the server.
-            await userSession.notificationService.tearDown()
-            await userSession.liveLocationService.stopAllLiveLocations()
-            
-            // First log out from the server
-            await userSession.clientProxy.logout()
-            
-            // Regardless of the result, clear user data
-            userSessionManager.remove(userID: userSession.clientProxy.userID)
-            tearDownUserSession()
-            
-            // Signed in accounts that aren't live yet still count.
-            if userSessionManager.userIDs.isEmpty {
-                notificationManager.reset()
-            }
-            
-            userSession.userSettings.account.reset()
-            appHooks.remoteSettingsHook.reset(appSettings)
-            
-            // Reset analytics
-            analyticsService.optOut()
-            analyticsService.resetConsentState()
-            
-            stateMachine.processEvent(.completedSigningOut)
-            
-            hideLoadingIndicator()
-        }
-    }
-    
-    private func tearDownUserSession() {
-        userIndicatorController.retractAllIndicators()
-    }
-    
-    private func disableAppLockAfterSigningOut() {
-        Task {
-            // Ensure the navigation stack has settled.
-            try? await Task.sleep(for: .milliseconds(500))
-            appLockFlowCoordinator.appLockService.disable()
-            windowManager.switchToMain()
-        }
+        appLockFlowCoordinator.appLockService.disable()
+        windowManager.switchToMain()
     }
     
     private func configureNotificationManager() {
@@ -852,31 +622,50 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
                 case let .callAnswered(userID, roomID, isVoiceCall):
                     guard let self else { return }
                     
-                    // TODO: Open other accounts' answered calls with their own session (#6387).
                     let animated = appMediator.appState == .active
                     let callRoute = AppRoute.call(roomID: roomID, isVoiceCall: isVoiceCall, answeredFromCallKit: true)
                     Task { await handleAppRoute(callRoute, userID: userID, awaitsRoom: false, windowType: nil, animated: animated) }
+                case .callScreen:
+                    break // Shown by the root flow.
                 }
             }
             .store(in: &cancellables)
     }
     
     private func observeUserSessionChanges() {
+        // Delivered synchronously, so a restored session is shown before the manager resumes it.
         userSessionManager.callbacksPublisher
-            .receive(on: DispatchQueue.main)
             .sink { [weak self] callback in
                 guard let self else { return }
                 switch callback {
-                case .didReceiveAuthError(let userID):
-                    // Only the active account can be signed out for now.
-                    guard userID == userSessionManager.activeSession?.clientProxy.userID else {
-                        MXLog.error("Ignoring an auth error for \(userID), it isn't the active account.")
-                        return
+                case .didRestoreSession(let userID):
+                    if let userSession = userSessionManager.session(for: userID) {
+                        finishSessionRestoration()
+                        sendStoredInlineReply(from: userSession)
                     }
-                    stateMachine.processEvent(.signOut(disableAppLock: false))
+                case .didSelectAccount:
+                    break
+                case .didRemoveAccount:
+                    handleAccountRemoval()
                 }
             }
             .store(in: &cancellables)
+    }
+    
+    private func handleAccountRemoval() {
+        #warning("Make sure to test this but it may well move.")
+        if let activeSession = userSessionManager.activeSession {
+            appHooks.remoteSettingsHook.loadCache(forHomeserver: activeSession.clientProxy.homeserver, applyingTo: appSettings)
+        } else {
+            appHooks.remoteSettingsHook.reset(appSettings)
+        }
+        
+        // Signed in accounts that aren't live yet still count.
+        guard userSessionManager.userIDs.isEmpty else { return }
+        
+        notificationManager.reset()
+        analyticsService.optOut()
+        analyticsService.resetConsentState()
     }
     
     private func observeAppLockChanges() {
@@ -888,7 +677,7 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
             case .unlockApp:
                 windowManager.switchToMain()
             case .forceLogout:
-                stateMachine.processEvent(.signOut(disableAppLock: true))
+                Task { await logoutAllAccounts(disableAppLock: true) }
             }
         }
         .store(in: &cancellables)
@@ -898,48 +687,13 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
         rootFlowCoordinator.actionsPublisher.sink { [weak self] action in
             guard let self else { return }
             switch action {
-            case .signInComplete(let userSession):
-                handleSignedInUserSession(userSession)
-            case .logout:
-                stateMachine.processEvent(.signOut(disableAppLock: false))
-            case .clearCache(let continuation):
-                clearCacheContinuation = continuation
-                stateMachine.processEvent(.clearCache)
+            case .closeSecondaryWindows:
+                windowManager.closeAllSecondaryWindows()
             case .forceLogout:
-                stateMachine.processEvent(.signOut(disableAppLock: true))
+                Task { await logoutAllAccounts(disableAppLock: true) }
             }
         }
         .store(in: &cancellables)
-    }
-    
-    private func clearCache() {
-        guard let userSession else {
-            fatalError("User session not setup")
-        }
-        
-        restorationTask?.cancel()
-        showLoadingIndicator()
-        
-        Task { await pauseClientServices(isBackgroundTask: false) }
-        
-        // Allow for everything to deallocate properly
-        Task {
-            await userSessionManager.clearCaches(userID: userSession.clientProxy.userID)
-            stateMachine.processEvent(.startWithExistingSession)
-            hideLoadingIndicator()
-        }
-    }
-    
-    /// Tells the root flow coordinator to restore the user session flow.
-    private func restoreUserSessionFlowAfterClearCache(_ continuation: AsyncStream<Result<Void, ClearCacheError>>.Continuation) {
-        continuation.yield(.success(()))
-        continuation.finish()
-    }
-    
-    /// Tells the root flow coordinator that the session failed to restore after clearing the cache.
-    private func cancelClearCache(_ continuation: AsyncStream<Result<Void, ClearCacheError>>.Continuation) {
-        continuation.yield(.failure(.failedRestoringSession))
-        continuation.finish()
     }
     
     private static func setupSentry(bugReportService: BugReportServiceProtocol, appSettings: AppSettings, analytics: AnalyticsServiceProtocol) {
@@ -1056,25 +810,6 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
         }
     }
     
-    // MARK: Toasts and loading indicators
-    
-    private static let loadingIndicatorIdentifier = "\(AppCoordinator.self)-Loading"
-    
-    private func showLoadingIndicator() {
-        userIndicatorController.submitIndicator(UserIndicator(id: Self.loadingIndicatorIdentifier,
-                                                              type: .modal,
-                                                              title: L10n.commonLoading,
-                                                              persistent: true))
-    }
-    
-    private func hideLoadingIndicator() {
-        userIndicatorController.retractIndicatorWithId(Self.loadingIndicatorIdentifier)
-    }
-    
-    private func showLoginErrorToast() {
-        userIndicatorController.submitIndicator(UserIndicator(title: "Failed logging in"))
-    }
-    
     // MARK: - Application State
     
     private func pauseClientServices(isBackgroundTask: Bool) async {
@@ -1084,40 +819,10 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
         }
         
         await userSessionManager.pauseServices()
-        clientProxyObserver = nil
     }
     
     private func resumeClientServices() async {
-        guard let userSession else { return }
-        
-        analyticsService.signpost.startTransaction(.upToDateRoomList)
-        
         await userSessionManager.resumeServices()
-        
-        guard clientProxyObserver == nil else {
-            return
-        }
-        
-        clientProxyObserver = userSession.clientProxy
-            .loadingStatePublisher
-            .dropFirst()
-            .removeDuplicates()
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] state in
-                let toastIdentifier = "StaleDataIndicator"
-                guard let self else { return }
-                
-                switch state {
-                case .loading:
-                    if self.userSession?.clientProxy.homeserverReachabilityPublisher.value == .reachable,
-                       self.appMediator.networkMonitor.reachabilityPublisher.value == .reachable {
-                        self.userIndicatorController.submitIndicator(.init(id: toastIdentifier, type: .toast(progress: .indeterminate), title: L10n.commonSyncing, persistent: true))
-                    }
-                case .notLoading:
-                    self.analyticsService.signpost.finishTransaction(.upToDateRoomList)
-                    self.userIndicatorController.retractIndicatorWithId(toastIdentifier)
-                }
-            }
     }
     
     private func observeApplicationState() {

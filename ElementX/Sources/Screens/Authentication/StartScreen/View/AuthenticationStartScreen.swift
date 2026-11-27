@@ -173,6 +173,14 @@ struct AuthenticationStartScreen: View {
     
     @ToolbarContentBuilder
     var toolbar: some ToolbarContent {
+        ToolbarItem(placement: .cancellationAction) {
+            if context.viewState.mode == .addAccount {
+                Button(L10n.actionCancel) {
+                    context.send(viewAction: .cancelAddingAccount)
+                }
+            }
+        }
+        
         ToolbarItem(placement: .primaryAction) {
             if case let .classicAppOtherOptions(classicAppAccount) = context.viewState.mode {
                 ToolbarButton(role: .close) {
@@ -217,7 +225,6 @@ struct AuthenticationStartScreen_Previews: PreviewProvider, TestablePreview {
         return AuthenticationStartScreenViewModel(authenticationService: AuthenticationService.mock(classicAppManager: classicAppManager),
                                                   provisioningParameters: provisionedServerName.map { .init(accountProvider: $0, loginHint: nil) },
                                                   isAddingAccount: isAddingAccount,
-                                                  isBugReportServiceEnabled: true,
                                                   appMediator: AppMediatorMock(),
                                                   appSettings: .volatile(),
                                                   mediaProvider: MediaProviderMock(.init()),

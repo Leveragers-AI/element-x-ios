@@ -12,6 +12,7 @@ import SwiftUI
 
 enum AuthenticationFlowCoordinatorAction {
     case signInComplete(userSession: UserSessionProtocol)
+    case cancelAddingAccount
 }
 
 class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
@@ -84,6 +85,8 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         
         /// The user has successfully signed in. The new session can be found in the `userInfo`.
         case signedIn
+        /// The user cancelled adding another account.
+        case cancelledAddingAccount
     }
     
     private let stateMachine: StateMachine<State, Event>
@@ -238,6 +241,10 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
             self?.userHasSignedIn(userSession: userSession)
         }
         
+        stateMachine.addRoutes(event: .cancelledAddingAccount, transitions: [.startScreen => .complete]) { [weak self] _ in
+            self?.actionsSubject.send(.cancelAddingAccount)
+        }
+        
         // Logging
         
         stateMachine.addAnyHandler(.any => .any) { context in
@@ -266,7 +273,6 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         let parameters = AuthenticationStartScreenParameters(authenticationService: authenticationService,
                                                              provisioningParameters: provisioningParameters,
                                                              isAddingAccount: isAddingAccount,
-                                                             isBugReportServiceEnabled: bugReportService.isEnabled,
                                                              appMediator: appMediator,
                                                              appSettings: appSettings,
                                                              mediaProvider: mediaProvider,
@@ -289,6 +295,9 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                     showOAuthAuthentication(oAuthData: oAuthData, presentationAnchor: window)
                 case .loginDirectlyWithPassword(let loginHint):
                     stateMachine.tryEvent(.continueWithPassword, userInfo: loginHint)
+                    
+                case .cancelAddingAccount:
+                    stateMachine.tryEvent(.cancelledAddingAccount)
                     
                 case .reportProblem:
                     stateMachine.tryEvent(.reportProblem)
@@ -422,10 +431,11 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     // MARK: - Bug Report
     
     private func startBugReportFlow() {
-        let coordinator = BugReportFlowCoordinator(parameters: .init(presentationMode: .sheet(navigationStackCoordinator),
-                                                                     userIndicatorController: userIndicatorController,
+        let coordinator = BugReportFlowCoordinator(parameters: .init(flow: .authentication(appSettings),
+                                                                     presentationMode: .sheet(navigationStackCoordinator),
                                                                      bugReportService: bugReportService,
-                                                                     userSession: nil))
+                                                                     bugReportHook: appHooks.bugReportHook,
+                                                                     userIndicatorController: userIndicatorController))
         coordinator.actionsPublisher.sink { [weak self] action in
             switch action {
             case .complete:

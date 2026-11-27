@@ -102,6 +102,8 @@ enum A11yIdentifiers {
     
     struct EncryptionResetScreen {
         let continueReset = "encryption_reset-continue_reset"
+        let signOut = "encryption_reset-sign_out"
+        let cancel = "encryption_reset-cancel"
     }
     
     struct EncryptionResetPasswordScreen {
@@ -235,9 +237,9 @@ enum A11yIdentifiers {
     }
     
     struct SecureBackupRecoveryKeyScreen {
-        let generateRecoveryKey = "secure_backup_recovery_key-generate_recovery_key"
         let copyRecoveryKey = "secure_backup_recovery_key-copy_recovery_key"
         let done = "secure_backup_recovery_key-done"
+        let finish = "secure_backup_recovery_key-finish"
         let recoveryKeyField = "secure_backup_recovery_key-recovery_key_field"
         let confirm = "secure_backup_recovery_key-confirm"
     }
@@ -262,6 +264,12 @@ enum A11yIdentifiers {
         let done = "settings-done"
         let account = "settings-account"
         let addAccount = "settings-add_account"
+        
+        let otherAccountPrefix = "settings-other_account"
+        func otherAccount(_ userID: String) -> String {
+            "\(otherAccountPrefix):\(userID)"
+        }
+        
         let secureBackup = "settings-secure_backup"
         let notifications = "settings-notifications"
         let analytics = "settings-analytics"

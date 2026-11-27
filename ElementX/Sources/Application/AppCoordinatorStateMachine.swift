@@ -14,16 +14,10 @@ class AppCoordinatorStateMachine {
     enum State: StateType {
         /// The initial state, used before the AppCoordinator starts
         case initial
-        /// Showing the authentication flow
-        case signedOut
-        /// Opening an existing session.
+        /// Opening the existing accounts at launch.
         case restoringSession
-        
-        /// User session started
-        case signedIn
-        
-        /// Processing a sign out request
-        case signingOut(disableAppLock: Bool)
+        /// The app is running, with or without any accounts.
+        case running
     }
     
     /// Events that can be triggered on the AppCoordinator state machine
@@ -37,16 +31,8 @@ class AppCoordinatorStateMachine {
         /// Restoring session failed.
         case failedRestoringSession
         
-        /// A session has been created.
-        case createdUserSession
-        
-        /// Request sign out.
-        case signOut(disableAppLock: Bool)
-        /// Signing out completed.
-        case completedSigningOut
-        
-        /// Request cache clearing.
-        case clearCache
+        /// A session has been restored.
+        case restoredSession
     }
     
     private let stateMachine: StateMachine<State, Event>
@@ -61,26 +47,10 @@ class AppCoordinatorStateMachine {
     }
     
     private func configure() {
-        stateMachine.addRoutes(event: .startWithAuthentication, transitions: [.initial => .signedOut])
-        stateMachine.addRoutes(event: .createdUserSession, transitions: [.signedOut => .signedIn])
+        stateMachine.addRoutes(event: .startWithAuthentication, transitions: [.initial => .running])
         stateMachine.addRoutes(event: .startWithExistingSession, transitions: [.initial => .restoringSession])
-        stateMachine.addRoutes(event: .createdUserSession, transitions: [.restoringSession => .signedIn])
-        stateMachine.addRoutes(event: .failedRestoringSession, transitions: [.restoringSession => .signedOut])
-        
-        stateMachine.addRoutes(event: .completedSigningOut, transitions: [.signingOut(disableAppLock: false) => .signedOut,
-                                                                          .signingOut(disableAppLock: true) => .signedOut])
-        
-        stateMachine.addRoutes(event: .clearCache, transitions: [.signedIn => .initial])
-        
-        // Transitions with associated values need to be handled through `addRouteMapping`
-        stateMachine.addRouteMapping { event, fromState, _ in
-            switch (fromState, event) {
-            case (_, .signOut(let disableAppLock)):
-                return .signingOut(disableAppLock: disableAppLock)
-            default:
-                return nil
-            }
-        }
+        stateMachine.addRoutes(event: .restoredSession, transitions: [.restoringSession => .running])
+        stateMachine.addRoutes(event: .failedRestoringSession, transitions: [.restoringSession => .running])
         
         addTransitionHandler { context in
             if let event = context.event {

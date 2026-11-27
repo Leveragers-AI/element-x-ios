@@ -50,11 +50,6 @@ final class ElementCallService: ElementCallServiceProtocol {
             .eraseToAnyPublisher()
     }
     
-    private let nativeCallPresentationSubject = PassthroughSubject<NativeCallPresentation, Never>()
-    var nativeCallPresentationPublisher: AnyPublisher<NativeCallPresentation, Never> {
-        nativeCallPresentationSubject.eraseToAnyPublisher()
-    }
-    
     /// The native call stack, while enabled and the setting is on.
     private var nativeCallStack: NativeCallStack?
     private var nativeCallCancellable: AnyCancellable?
@@ -83,6 +78,23 @@ final class ElementCallService: ElementCallServiceProtocol {
                 self?.updateNativeCallStack()
             }
             .store(in: &cancellables)
+    }
+    
+    func requestCall(roomProxy: JoinedRoomProxyProtocol, isVoiceCall: Bool) {
+        actionsSubject.send(.callRequested(.init(roomProxy: roomProxy, isVoiceCall: isVoiceCall)))
+    }
+    
+    func minimizeCall() {
+        actionsSubject.send(.callMinimizeRequested)
+    }
+    
+    func endCalls() {
+        actionsSubject.send(.callsEndRequested)
+    }
+    
+    func joinedRoom(roomID: String) async -> JoinedRoomProxyProtocol? {
+        guard case let .joined(roomProxy) = await clientProxy.roomForIdentifier(roomID) else { return nil }
+        return roomProxy
     }
     
     func setNativeCallStackEnabled(_ isEnabled: Bool) {
@@ -222,7 +234,7 @@ final class ElementCallService: ElementCallServiceProtocol {
         
         nativeCallCancellable = stack.actions
             .sink { [weak self] presentation in
-                self?.nativeCallPresentationSubject.send(presentation)
+                self?.actionsSubject.send(.nativeCallPresentation(presentation))
             }
         
         Task { await stack.start() }
@@ -234,7 +246,7 @@ final class ElementCallService: ElementCallServiceProtocol {
         nativeCallCancellable = nil
         
         nativeCallStack.stop()
-        nativeCallPresentationSubject.send(.dismiss)
+        actionsSubject.send(.nativeCallPresentation(.dismiss))
     }
     
     // MARK: - Private

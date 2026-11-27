@@ -16,8 +16,6 @@ enum ChatsTabFlowCoordinatorAction {
     case showSettings
     case showChatBackupSettings
     case sessionVerification(SessionVerificationScreenFlow)
-    case showCallScreen(roomProxy: JoinedRoomProxyProtocol, isVoiceCall: Bool)
-    case hideCallScreenOverlay
     case logout
 }
 
@@ -204,10 +202,11 @@ class ChatsTabFlowCoordinator: FlowCoordinatorProtocol {
                 dismissSpaceFlow(animated: animated)
                 
             case (.roomList, .feedbackScreen, .feedbackScreen):
-                bugReportFlowCoordinator = BugReportFlowCoordinator(parameters: .init(presentationMode: .sheet(sidebarNavigationStackCoordinator),
-                                                                                      userIndicatorController: flowParameters.userIndicatorController,
+                bugReportFlowCoordinator = BugReportFlowCoordinator(parameters: .init(flow: .userSession(userSession),
+                                                                                      presentationMode: .sheet(sidebarNavigationStackCoordinator),
                                                                                       bugReportService: flowParameters.bugReportService,
-                                                                                      userSession: userSession))
+                                                                                      bugReportHook: userSession.userHooks.bugReportHook,
+                                                                                      userIndicatorController: flowParameters.userIndicatorController))
                 bugReportFlowCoordinator?.actionsPublisher.sink { [weak self] action in
                     switch action {
                     case .complete:
@@ -323,7 +322,6 @@ class ChatsTabFlowCoordinator: FlowCoordinatorProtocol {
                           detached: false,
                           animated: animated)
         }
-        actionsSubject.send(.hideCallScreenOverlay) // Turn any active call into a PiP so that navigation from a notification is visible to the user.
     }
     
     private func setupObservers() {
@@ -405,8 +403,6 @@ class ChatsTabFlowCoordinator: FlowCoordinatorProtocol {
                     actionsSubject.send(.showSettings)
                 case .presentFeedbackScreen:
                     stateMachine.processEvent(.feedbackScreen)
-                case .presentSecureBackupSettings:
-                    actionsSubject.send(.showChatBackupSettings)
                 case .presentRecoveryKeyScreen:
                     stateMachine.processEvent(.showRecoveryKeyScreen)
                 case .presentEncryptionResetScreen:
@@ -524,8 +520,6 @@ class ChatsTabFlowCoordinator: FlowCoordinatorProtocol {
             guard let self else { return }
             
             switch action {
-            case .presentCallScreen(let roomProxy, let isVoiceCall):
-                actionsSubject.send(.showCallScreen(roomProxy: roomProxy, isVoiceCall: isVoiceCall))
             case .verifyUser(let userID):
                 actionsSubject.send(.sessionVerification(.userInitiator(userID: userID)))
             case .continueWithSpaceFlow(let spaceRoomListProxy):
@@ -595,8 +589,6 @@ class ChatsTabFlowCoordinator: FlowCoordinatorProtocol {
             .sink { [weak self] action in
                 guard let self else { return }
                 switch action {
-                case .presentCallScreen(let roomProxy, let isVoiceCall):
-                    actionsSubject.send(.showCallScreen(roomProxy: roomProxy, isVoiceCall: isVoiceCall))
                 case .verifyUser(let userID):
                     actionsSubject.send(.sessionVerification(.userInitiator(userID: userID)))
                 case .finished:
@@ -666,7 +658,7 @@ class ChatsTabFlowCoordinator: FlowCoordinatorProtocol {
                                                                             userIndicatorController: flowParameters.userIndicatorController,
                                                                             isModallyPresented: true)
         
-        let coordinator = userSession.userHooks.recoveryKeyScreenHook.makeCoordinator(parameters: parameters)
+        let coordinator = userSession.userHooks.recoveryKeyScreenHook.makeCoordinator(parameters: parameters, isCheckingKey: false)
         coordinator.actions.sink { [weak self] action in
             guard let self else { return }
             switch action {
@@ -699,6 +691,10 @@ class ChatsTabFlowCoordinator: FlowCoordinatorProtocol {
                 navigationSplitCoordinator.setSheetCoordinator(nil)
             case .cancel:
                 navigationSplitCoordinator.setSheetCoordinator(nil)
+            case .logoutWithoutConfirmation:
+                // Signing out is only offered when resetting is the user's only option, which can't be the case when started from here.
+                MXLog.error("Unexpected sign out request from the encryption reset flow.")
+                fatalError("The encryption reset flow shouldn't offer signing out when started from the chats tab.")
             }
         }
         .store(in: &cancellables)
@@ -759,8 +755,6 @@ class ChatsTabFlowCoordinator: FlowCoordinatorProtocol {
             case .openDirectChat(let roomID):
                 navigationSplitCoordinator.setSheetCoordinator(nil)
                 stateMachine.processEvent(.selectRoom(roomID: roomID, via: [], entryPoint: .room))
-            case .startCall(let roomProxy, let isVoiceCall):
-                actionsSubject.send(.showCallScreen(roomProxy: roomProxy, isVoiceCall: isVoiceCall))
             case .dismiss:
                 navigationSplitCoordinator.setSheetCoordinator(nil)
             }

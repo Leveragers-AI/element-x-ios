@@ -10,9 +10,14 @@ import Combine
 import SwiftUI
 
 enum SettingsFlowCoordinatorAction {
+    case addAccount
+    case switchAccount(userID: String)
+    
     case dismiss
     case clearCache
     case runLogoutFlow
+    /// Logout without a confirmation. The account was deactivated.
+    case accountDeactivated
     /// Logout without a confirmation. The user forgot their PIN.
     case forceLogout
 }
@@ -77,7 +82,7 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
     
     private func presentSettingsScreen(animated: Bool) {
         let settingsScreenCoordinator = SettingsScreenCoordinator(parameters: .init(userSession: flowParameters.userSession,
-                                                                                    isBugReportServiceEnabled: flowParameters.bugReportService.isEnabled,
+                                                                                    availableSessionsPublisher: flowParameters.availableSessionsPublisher,
                                                                                     isInSecondaryWindow: isInSecondaryWindow,
                                                                                     userIndicatorController: flowParameters.userIndicatorController))
         
@@ -95,7 +100,9 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                     presentEmojiPicker(emojiPickerContinuation: continuation)
                     
                 case .addAccount:
-                    break // Nothing to present until the add account flow exists.
+                    actionsSubject.send(.addAccount)
+                case .switchAccount(let userID):
+                    actionsSubject.send(.switchAccount(userID: userID))
                     
                 case let .manageAccount(url):
                     presentAccountManagementURL(url)
@@ -108,10 +115,11 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                 case .moderationAndSafety:
                     presentModerationAndSafetySettings()
                 case .bugReport:
-                    bugReportFlowCoordinator = BugReportFlowCoordinator(parameters: .init(presentationMode: .push(navigationStackCoordinator),
-                                                                                          userIndicatorController: flowParameters.userIndicatorController,
+                    bugReportFlowCoordinator = BugReportFlowCoordinator(parameters: .init(flow: .userSession(flowParameters.userSession),
+                                                                                          presentationMode: .push(navigationStackCoordinator),
                                                                                           bugReportService: flowParameters.bugReportService,
-                                                                                          userSession: flowParameters.userSession))
+                                                                                          bugReportHook: flowParameters.userSession.userHooks.bugReportHook,
+                                                                                          userIndicatorController: flowParameters.userIndicatorController))
                     bugReportFlowCoordinator?.start()
                     
                 case .logout:
@@ -343,7 +351,7 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                 
                 switch action {
                 case .accountDeactivated:
-                    actionsSubject.send(.forceLogout)
+                    actionsSubject.send(.accountDeactivated)
                 }
             }
             .store(in: &cancellables)

@@ -120,6 +120,10 @@ final nonisolated class AppSettings: @unchecked Sendable {
     @UserPreference(defaultValue: true)
     var hasSeenMultiAccountAnnouncement: Bool
     
+    /// Whether Settings lists the other accounts, rather than only showing their avatars.
+    @UserPreference(defaultValue: true)
+    var hasExpandedAccountPicker: Bool
+    
     /// The initial set of account providers shown to the user in the authentication flow.
     ///
     /// Account provider is the friendly term for the server name. It should not contain an `https` prefix and should
@@ -287,7 +291,7 @@ final nonisolated class AppSettings: @unchecked Sendable {
     
     // MARK: - Bug report
     
-    let bugReportRageshakeURL: RemotePreference<RageshakeConfiguration> = .init(Secrets.rageshakeURL.map { .url(URL(string: $0)!) } ?? .disabled) // swiftlint:disable:this force_unwrapping
+    let bundledBugReportRageshakeConfiguration: RageshakeConfiguration = Secrets.rageshakeURL.map { .url(URL(string: $0)!) } ?? .disabled // swiftlint:disable:this force_unwrapping
     let bugReportSentryURL: URL? = Secrets.sentryDSN.map { URL(string: $0)! } // swiftlint:disable:this force_unwrapping
     let bugReportSentryRustURL: URL? = Secrets.sentryRustDSN.map { URL(string: $0)! } // swiftlint:disable:this force_unwrapping
     /// The name allocated by the bug report server
@@ -387,6 +391,10 @@ final nonisolated class AppSettings: @unchecked Sendable {
     @UserPreference(defaultValue: false)
     var mentionsFilterEnabled: Bool
     
+    /// Puts the invites filter first while there are invites and hides it when there are none.
+    @UserPreference(defaultValue: false)
+    var prominentInvitesFilterEnabled: Bool
+    
     /// Configuration to enable only signed device isolation mode for  crypto. In this mode only devices signed by their owner will be considered in e2ee rooms.
     @UserPreference(defaultValue: false)
     var enableOnlySignedDeviceIsolationMode: Bool
@@ -411,6 +419,10 @@ final nonisolated class AppSettings: @unchecked Sendable {
     @UserPreference(defaultValue: false)
     var galleryEnabled: Bool
     
+    /// Adds a pencil next to crop in the media upload preview, to draw on pictures before sending them.
+    @UserPreference(defaultValue: false)
+    var imageDrawingEnabled: Bool
+    
     @UserPreference(defaultValue: false)
     var jumpToReadMarkerEnabled: Bool
     
@@ -433,10 +445,6 @@ final nonisolated class AppSettings: @unchecked Sendable {
     @UserPreference(defaultValue: false)
     var multiAccountEnabled: Bool
     
-    /// Lets the add account flow start once `multiAccountEnabled` shows its entry points. Not a user preference, so testers
-    /// can't add a second account while signing out of one isn't safe yet. Only set it to `true` locally, for development.
-    let addAccountFlowEnabled = false
-    
     /// Lets it snow on top of the whole app.
     @UserPreference(defaultValue: false)
     var snowEnabled: Bool
@@ -448,7 +456,8 @@ final nonisolated class AppSettings: @unchecked Sendable {
     func userSettings(for userID: String) -> UserSettings {
         UserSettings(appSettings: self, accountSettings: .init(userID: userID,
                                                                store: store,
-                                                               bundledMapTilerConfiguration: bundledMapTilerConfiguration))
+                                                               bundledMapTilerConfiguration: bundledMapTilerConfiguration,
+                                                               bundledBugReportRageshakeConfiguration: bundledBugReportRageshakeConfiguration))
     }
     
     static func volatile() -> AppSettings {

@@ -85,9 +85,9 @@ extension ClientProxyMock {
         notificationSettings = configuration.notificationSettings
         roomsToAwait = []
         
-        isOnlyDeviceLeftReturnValue = .success(false)
         webRoomListSectionsReturnValue = .success(.empty)
         hasDevicesToVerifyAgainstReturnValue = .success(true)
+        hasEncryptedRoomsReturnValue = .success(true)
         accountURLActionReturnValue = "https://matrix.org/account"
         canDeactivateAccount = false
         directRoomForUserIDReturnValue = .failure(.sdkError(ClientProxyMockError.generic))

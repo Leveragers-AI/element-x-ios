@@ -13,7 +13,6 @@ struct AuthenticationStartScreenParameters {
     let authenticationService: AuthenticationServiceProtocol
     let provisioningParameters: AccountProvisioningParameters?
     let isAddingAccount: Bool
-    let isBugReportServiceEnabled: Bool
     let appMediator: AppMediatorProtocol
     let appSettings: AppSettings
     let mediaProvider: MediaProviderProtocol?
@@ -27,6 +26,8 @@ enum AuthenticationStartScreenCoordinatorAction {
     
     case loginDirectlyWithOAuth(data: OAuthAuthorizationDataProxy, window: UIWindow)
     case loginDirectlyWithPassword(loginHint: String?)
+    
+    case cancelAddingAccount
     
     case reportProblem
     case developerOptions
@@ -45,7 +46,6 @@ final class AuthenticationStartScreenCoordinator: CoordinatorProtocol {
         viewModel = AuthenticationStartScreenViewModel(authenticationService: parameters.authenticationService,
                                                        provisioningParameters: parameters.provisioningParameters,
                                                        isAddingAccount: parameters.isAddingAccount,
-                                                       isBugReportServiceEnabled: parameters.isBugReportServiceEnabled,
                                                        appMediator: parameters.appMediator,
                                                        appSettings: parameters.appSettings,
                                                        mediaProvider: parameters.mediaProvider,
@@ -71,6 +71,9 @@ final class AuthenticationStartScreenCoordinator: CoordinatorProtocol {
                     actionsSubject.send(.loginDirectlyWithOAuth(data: data, window: window))
                 case .loginDirectlyWithPassword(let loginHint):
                     actionsSubject.send(.loginDirectlyWithPassword(loginHint: loginHint))
+                    
+                case .cancelAddingAccount:
+                    actionsSubject.send(.cancelAddingAccount)
                     
                 case .reportProblem:
                     actionsSubject.send(.reportProblem)

@@ -1,3 +1,138 @@
+## Changes in 26.11.2 (2026-11-17)
+
+### What's Changed
+
+✨ Features
+* Add more reaction particle effects by @stefanceriu in https://github.com/element-hq/element-x-ios/pull/6485
+* Render inline custom emotes by @stefanceriu in https://github.com/element-hq/element-x-ios/pull/6503
+
+🙌 Improvements
+* New routing when removing a device by @mxandreas in https://github.com/element-hq/element-x-ios/pull/6351
+* Add "inline" recovery key creation/change while removing device by @mxandreas in https://github.com/element-hq/element-x-ios/pull/6355
+* Ability to check existing recovery key before removing device by @mxandreas in https://github.com/element-hq/element-x-ios/pull/6359
+* Make `AppCoordinator` support the upcoming multi-account world. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6486
+* Start the inline recovery key flow from the Get recovery key banner by @mxandreas in https://github.com/element-hq/element-x-ios/pull/6481
+* Move call screen decisions from the user session flow into ElementCallManager by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6498
+* Hide the room banners while selecting messages to forward by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6502
+* Enhancements to the identity confirmation and encryption reset screens. by @mxandreas in https://github.com/element-hq/element-x-ios/pull/6305
+* Show call screens above the account's screens by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6430
+
+🐛 Bugfixes
+* Keep member names and avatars up to date while a room is open by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6469
+* Show a different completion message when the recovery has just been set up by @mxandreas in https://github.com/element-hq/element-x-ios/pull/6480
+* Add isCheckingKey to the RecoveryKeyScreenHook. by @mxandreas in https://github.com/element-hq/element-x-ios/pull/6490
+* Keep the media browser's loading indicator visible until the start of the room by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6500
+* Fix live location shares silently stopping and leaving a frozen pin by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6505
+* Keep the timeline's loading indicator visible until the start of the room by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6507
+* Use "Continue" on the check recovery key screen when removing the device by @mxandreas in https://github.com/element-hq/element-x-ios/pull/6519
+
+🗣 Translations
+* Translations update by @RiotRobot in https://github.com/element-hq/element-x-ios/pull/6483
+* Translations update by @RiotRobot in https://github.com/element-hq/element-x-ios/pull/6515
+
+🧱 Build
+* Bump element-call-ios to 0.1.0-rc.16 by @BillCarsonFr in https://github.com/element-hq/element-x-ios/pull/6492
+* Add a workflow that opens a PR to update the SDK by @stefanceriu in https://github.com/element-hq/element-x-ios/pull/6493
+* Generate the SDK mocks from every file in the Swift package by @stefanceriu in https://github.com/element-hq/element-x-ios/pull/6497
+* Check external pull requests for translation changes by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6516
+
+🚧 In development 🚧
+* Show the invite count on the Invites filter and move it first while any invite is unseen by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6476
+* Put the Invites filter first while there are invites and hide it when there are none by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6487
+* Show the other signed-in accounts in Settings by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6488
+* Add back the View Source toggle, but into Developer Options. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6501
+* Draw on pictures before sending them by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6437
+* Make tracing and bug reports multi-account aware. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6506
+
+Others
+* Update Project Dependencies by @renovate[bot] in https://github.com/element-hq/element-x-ios/pull/6464
+* Update zizmorcore/zizmor-action action to v0.8.1 by @renovate[bot] in https://github.com/element-hq/element-x-ios/pull/6489
+* A couple more AppCoordinator tweaks. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6491
+* Update the SDK to 26.11.10 by @RiotRobot in https://github.com/element-hq/element-x-ios/pull/6494
+* Fix a race in ManualClock that could crash the unit tests by @stefanceriu in https://github.com/element-hq/element-x-ios/pull/6499
+* Update the SDK to 26.11.12 by @RiotRobot in https://github.com/element-hq/element-x-ios/pull/6504
+* Fix the issue template chooser and restrict blank issues to maintainers by @manuroe in https://github.com/element-hq/element-x-ios/pull/6508
+* Update GitHub Actions by @renovate[bot] in https://github.com/element-hq/element-x-ios/pull/6510
+* Update the Enterprise submodule. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6517
+* Update the SDK to 26.11.16 by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6518
+* Update the SDK to 26.11.17 by @RiotRobot in https://github.com/element-hq/element-x-ios/pull/6523
+
+
+**Full Changelog**: https://github.com/element-hq/element-x-ios/compare/release/26.11.0...release/26.11.2
+
+## Changes in 26.11.0 (2026-11-05)
+
+### What's Changed
+
+✨ Features
+* Allow replying to a message with a voice message by @UzairKhalid-crypto in https://github.com/element-hq/element-x-ios/pull/6307
+* Render custom image reactions by @stefanceriu in https://github.com/element-hq/element-x-ios/pull/6475
+
+🙌 Improvements
+* Map SAS strings with indexes by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6426
+* Don't send a profile tag when registering a pusher. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6442
+* Let members of an allowed space join `knock_restricted` rooms directly by @bardiharborow in https://github.com/element-hq/element-x-ios/pull/6421
+* Add a new `RootFlowCoordinator` to manage the app's `rootNavigationCoordinator`. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6468
+
+🐛 Bugfixes
+* Fix room titles covering the toolbar buttons after cancelling a swipe back by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6386
+* Fix re-attaching a removed screenshot when reporting a problem by @rene-schakmann in https://github.com/element-hq/element-x-ios/pull/6370
+* Stop briefly showing the identity confirmation screen after creating an account by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6392
+* Fix extra space in message bubbles after a mention's name loads by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6393
+* Fix every incoming call showing as missed after signing out or clearing the cache during a call by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6423
+* Preserve the existing user agent by appending the app name. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6435
+* Make sure the media details button replaces QuickLook's list button. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6434
+* Check the m.room.encrypted power level when sending messages in encrypted rooms by @stefanceriu in https://github.com/element-hq/element-x-ios/pull/6444
+* Fix a failed invitations change resetting the Calls toggle by @bardiharborow in https://github.com/element-hq/element-x-ios/pull/6420
+* Fix right-to-left text being left aligned in messages and the composer by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6460
+* Keep thread replies in their thread when opened or answered from a notification by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6461
+
+🗣 Translations
+* Translations update by @RiotRobot in https://github.com/element-hq/element-x-ios/pull/6449
+
+🧱 Build
+* Bump the calendar version ready for the next release by @RiotRobot in https://github.com/element-hq/element-x-ios/pull/6411
+* Fix flakey tests and suite retries by @stefanceriu in https://github.com/element-hq/element-x-ios/pull/6402
+* Build only arm64 in the Renovate XcodeGen workflow by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6467
+* Speed up the unit tests workflow by @stefanceriu in https://github.com/element-hq/element-x-ios/pull/6463
+
+📄 Documentation
+* Add a note about max PR limit for external contributors. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6428
+* File feature requests (`T-Enhancement`) in element-meta by @manuroe in https://github.com/element-hq/element-x-ios/pull/6384
+
+🚧 In development 🚧
+* Move `mapTilerConfiguration` into `AccountSettings`. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6410
+* Upgrade native Element Call to 0.1.0-rc.12 by @BillCarsonFr in https://github.com/element-hq/element-x-ios/pull/6425
+* Search history limit description by @stefanceriu in https://github.com/element-hq/element-x-ios/pull/6439
+* Give every signed-in account its own Element Call service by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6446
+* Add account flow preparation. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6452
+* Take over only answered calls and report calls during a native call as missed by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6459
+* Bump element-call-ios to 0.1.0-rc.15 by @BillCarsonFr in https://github.com/element-hq/element-x-ios/pull/6470
+* Burst confetti for 🎉 reactions and add a snow effect by @stefanceriu in https://github.com/element-hq/element-x-ios/pull/6451
+
+Others
+* Upgrade Element Call to the 0.28.1 RC. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6414
+* Merge nested if statements flagged by SwiftFormat 0.64.4 by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6415
+* Simplify `ClientProxy` to have a single `createRoom` method with parameters. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6413
+* Split CallKit and VoIP push handling out of the Element Call service by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6429
+* Add a hook point to update a restored Client. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6441
+* Upgrade Element Call to the 0.28.1 RC 2 (inc an SDK update). by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6447
+* Update zizmorcore/zizmor-action action to v0.8.0 by @renovate[bot] in https://github.com/element-hq/element-x-ios/pull/6445
+* Stop the native call tests from crashing the unit tests on CI by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6440
+* Update AGENTS.md with test naming style. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6453
+* Update Element Call to the final release. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6454
+* Read the VoIP push payload into a type by @Velin92 in https://github.com/element-hq/element-x-ios/pull/6450
+* Fix LiveKit URL for native calling (currently unused) by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6456
+* Update Shared Dependencies to v1.19.7 by @renovate[bot] in https://github.com/element-hq/element-x-ios/pull/6465
+* Update AGENTS.md by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6471
+* Update the SDK. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/6477
+
+### New Contributors
+* @bardiharborow made their first contribution in https://github.com/element-hq/element-x-ios/pull/6421
+* @UzairKhalid-crypto made their first contribution in https://github.com/element-hq/element-x-ios/pull/6307
+
+**Full Changelog**: https://github.com/element-hq/element-x-ios/compare/release/26.10.8...release/26.11.0
+
 ## Changes in 26.10.8 (2026-10-26)
 
 ### What's Changed

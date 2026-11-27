@@ -99,6 +99,14 @@ final nonisolated class KeychainController: KeychainControllerProtocol {
         }
     }
     
+    func collectSessionHomeservers() -> Set<String> {
+        // Any unreadable tokens are left to be logged and removed after logging is configured.
+        Set(restorationTokenKeychain.allKeys().compactMap { username in
+            guard let tokenData = try? restorationTokenKeychain.getData(username) else { return nil }
+            return try? JSONDecoder().decode(RestorationToken.self, from: tokenData).session.homeserverUrl
+        })
+    }
+    
     // MARK: - ClientSessionDelegate
     
     func retrieveSessionFromKeychain(userId: String) throws -> Session {
@@ -116,6 +124,13 @@ final nonisolated class KeychainController: KeychainControllerProtocol {
             MXLog.error("Failed retrieving the restoration token for \(session.userId)")
             fatalError("Something has gone mega wrong, all bets are off.")
         }
+        
+        guard session.deviceId == oldToken.session.deviceId else {
+            // Unlikely but protects against a duplicate login attempting to overwrite the existing account's session before it gets automatically logged out.
+            MXLog.error("Received session for \(session.userId) (\(oldToken.session.deviceId)) with a different device ID (\(session.deviceId)). Dropping.")
+            return
+        }
+        
         let restorationToken = RestorationToken(session: session,
                                                 sessionDirectories: oldToken.sessionDirectories,
                                                 passphrase: oldToken.passphrase,
