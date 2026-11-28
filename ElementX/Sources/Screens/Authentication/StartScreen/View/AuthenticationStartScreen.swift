@@ -122,10 +122,15 @@ struct AuthenticationStartScreen: View {
                 .accessibilityIdentifier(A11yIdentifiers.authenticationStartScreen.signInWithQr)
             }
             
+            if context.viewState.signsInWithEmail {
+                emailField
+            }
+            
             Button { context.send(viewAction: .login) } label: {
                 Text(context.viewState.loginButtonTitle)
             }
             .buttonStyle(.compound(.primary))
+            .disabled(!context.viewState.canContinue)
             .accessibilityIdentifier(A11yIdentifiers.authenticationStartScreen.signIn)
             
             if context.viewState.showCreateAccountButton {
@@ -152,6 +157,21 @@ struct AuthenticationStartScreen: View {
         }
         .padding(.horizontal, verticalSizeClass == .compact ? 128 : 24)
         .readableFrame()
+    }
+    
+    /// Leveragers: the email address, which the front door routes to its chat server.
+    var emailField: some View {
+        TextField(LeveragersL10n.signInEmailLabel, text: $context.email, prompt: Text(verbatim: ""))
+            .textFieldStyle(.compound(labelText: LeveragersL10n.signInEmailLabel,
+                                      footerText: context.viewState.emailFooterText,
+                                      state: context.viewState.emailError == nil ? .default : .error))
+            .keyboardType(.emailAddress)
+            .textContentType(.emailAddress)
+            .autocapitalization(.none)
+            .disableAutocorrection(true)
+            .submitLabel(.continue)
+            .onSubmit { context.send(viewAction: .login) }
+            .onChange(of: context.email) { context.send(viewAction: .clearEmailError) }
     }
     
     var versionText: Text {

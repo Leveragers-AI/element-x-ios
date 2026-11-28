@@ -124,7 +124,9 @@ final nonisolated class AppSettings: @unchecked Sendable {
     ///
     /// Account provider is the friendly term for the server name. It should not contain an `https` prefix and should
     /// match the last part of the user ID. For example `example.com` and not `https://matrix.example.com`.
-    /// Leveragers: the app only signs in to our chat server.
+    /// Leveragers: our pro server. The app signs in to the chat server the front door names for the email typed on the
+    /// start screen (`leveragersFrontDoorURL`, `signsInWithEmail`), only one under `.leveragers.com`
+    /// (`FrontDoorService.isAllowedServerName`), and never offers to pick or type a server.
     private(set) var accountProviders: [AccountProvider] = [.managed(serverName: "chat.leveragers.com", baseURL: "https://chat.leveragers.com")]
     /// Whether or not the user is allowed to manually enter their own account provider or must select from one of `defaultAccountProviders`.
     private(set) var allowOtherAccountProviders = false
@@ -137,8 +139,11 @@ final nonisolated class AppSettings: @unchecked Sendable {
     let hasSimplifiedSettings = true
     /// Leveragers: new rooms go in the first space by default and open to its members, without the access and address options.
     private(set) var hasSimplifiedRoomCreation = true
-    /// Leveragers: the start screen opens the chat server's sign-in page by itself, its button stays for a retry.
-    private(set) var opensSignInAutomatically = true
+    /// Leveragers: the start screen asks for an email address, then signs in to the chat server the front door names for it.
+    private(set) var signsInWithEmail = true
+    /// Leveragers: the last email address used to sign in on this device, to pre-fill the start screen.
+    @UserPreference
+    var lastSignInEmail: String?
     /// Leveragers: whether users can block other users or report rooms and messages. Our agents and colleagues
     /// share one organisation, so the blocking and reporting entry points are hidden.
     static let allowsBlockingAndReporting = false
@@ -190,6 +195,9 @@ final nonisolated class AppSettings: @unchecked Sendable {
     private(set) var elementWebHosts = ["agents.leveragers.com"]
     /// The domain that account provisioning links will be hosted on - used for handling the links.
     private(set) var accountProvisioningHost = "agents.leveragers.com"
+    /// Leveragers: the front door, a public storage bucket that names the chat server of an email address before sign-in
+    /// (`d/<domain>.json`, `t/<Microsoft tenant ID>.json`).
+    private(set) var leveragersFrontDoorURL: URL = "https://login.leveragers.com"
     /// The App Store URL for Element Pro, shown to the user when a homeserver requires that app.
     /// **Note:** This property isn't overridable as it in unexpected for forks to come across the error (or to even have a "Pro" app).
     let elementProAppStoreURL: URL = "https://apps.apple.com/app/element-pro-for-work/id6502951615"
@@ -458,6 +466,6 @@ final nonisolated class AppSettings: @unchecked Sendable {
     /// Restores Element's room creation and start screen, for the tests written against them.
     func disableLeveragersFlows() {
         hasSimplifiedRoomCreation = false
-        opensSignInAutomatically = false
+        signsInWithEmail = false
     }
 }

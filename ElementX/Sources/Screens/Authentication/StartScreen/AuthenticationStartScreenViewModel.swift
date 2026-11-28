@@ -15,11 +15,11 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
     private let authenticationService: AuthenticationServiceProtocol
     private let provisioningParameters: AccountProvisioningParameters?
     private let appMediator: AppMediatorProtocol
+    private let appSettings: AppSettings
+    private let frontDoorService: FrontDoorServiceProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
     
     private let canReportProblem: Bool
-    /// Leveragers: whether the sign-in page should still open by itself, once the window is known.
-    private var shouldOpenSignInAutomatically: Bool
     
     private var actionsSubject: PassthroughSubject<AuthenticationStartScreenViewModelAction, Never> = .init()
     
@@ -35,14 +35,15 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
          appSettings: AppSettings,
          mediaProvider: MediaProviderProtocol?,
          notificationCenter: NotificationCenter = .default,
+         frontDoorService: FrontDoorServiceProtocol? = nil,
          userIndicatorController: UserIndicatorControllerProtocol) {
         self.authenticationService = authenticationService
         self.provisioningParameters = provisioningParameters
         self.appMediator = appMediator
+        self.appSettings = appSettings
+        self.frontDoorService = frontDoorService ?? FrontDoorService(baseURL: appSettings.leveragersFrontDoorURL)
         self.userIndicatorController = userIndicatorController
         canReportProblem = isBugReportServiceEnabled
-        // The UI tests drive the start screen themselves.
-        shouldOpenSignInAutomatically = appSettings.opensSignInAutomatically && !ProcessInfo.isRunningUITests
         
         let isQRCodeScanningSupported = !ProcessInfo.processInfo.isiOSAppOnMac
         
@@ -88,7 +89,9 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
                                                                   serverNameOrBaseURL: serverNameOrBaseURL,
                                                                   showCreateAccountButton: showCreateAccountButton,
                                                                   showQRCodeLoginButton: showQRCodeLoginButton,
-                                                                  hideBrandChrome: appSettings.hideBrandChrome)
+                                                                  hideBrandChrome: appSettings.hideBrandChrome,
+                                                                  signsInWithEmail: appSettings.signsInWithEmail,
+                                                                  bindings: .init(email: appSettings.lastSignInEmail ?? ""))
         
         super.init(initialViewState: initialViewState, mediaProvider: mediaProvider)
         
@@ -104,7 +107,8 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
         case .updateWindow(let window):
             guard state.window != window else { return }
             state.window = window
-            openSignInAutomaticallyIfNeeded()
+        case .clearEmailError:
+            state.emailError = nil
         case .reportProblem:
             if canReportProblem {
                 actionsSubject.send(.reportProblem)
@@ -133,14 +137,6 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
     
     // MARK: - Private
     
-    /// Opens the sign-in page of our single server straight away on the welcome screen, only once:
-    /// cancelling it leaves the screen and its button to try again.
-    private func openSignInAutomaticallyIfNeeded() {
-        guard shouldOpenSignInAutomatically, state.mode == .welcome, state.serverNameOrBaseURL != nil else { return }
-        shouldOpenSignInAutomatically = false
-        Task { await login() }
-    }
-    
     private func login(classicAppAccount: ClassicAppAccount? = nil) async {
         if let classicAppAccount {
             if classicAppAccount.state.availableSecrets == .requiresBackup {
@@ -150,10 +146,30 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
                                     loginHint: "mxid:\(classicAppAccount.userID)",
                                     fallbackHomeserverURL: classicAppAccount.homeserverURL)
             }
+        } else if state.signsInWithEmail {
+            await loginWithEmail()
         } else if let serverNameOrBaseURL = state.serverNameOrBaseURL {
             await loginDirectly(using: serverNameOrBaseURL, loginHint: provisioningParameters?.loginHint)
         } else {
             actionsSubject.send(.login) // No need to configure anything here, continue the flow.
+        }
+    }
+    
+    /// Leveragers: asks the front door for the chat server of the email address, then signs in there as a provisioning
+    /// link does, with the address as the login hint. On a failure the address stays in the field, never another server.
+    private func loginWithEmail() async {
+        let email = state.bindings.email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !email.isEmpty else { return }
+        
+        startLoading()
+        
+        switch await frontDoorService.serverName(forEmail: email) {
+        case .success(let serverName):
+            appSettings.lastSignInEmail = email
+            await loginDirectly(using: serverName, loginHint: email)
+        case .failure(let error):
+            stopLoading()
+            state.emailError = error
         }
     }
     

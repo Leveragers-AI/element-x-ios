@@ -34,9 +34,14 @@ struct AuthenticationStartScreenViewState: BindableState {
     let showCreateAccountButton: Bool
     let showQRCodeLoginButton: Bool
     let hideBrandChrome: Bool
+    /// Leveragers: the screen asks for an email address, the front door names its chat server.
+    let signsInWithEmail: Bool
     
     /// The presentation anchor used for OAuth authentication.
     var window: UIWindow?
+    
+    /// Leveragers: why the email address didn't lead to a chat server.
+    var emailError: FrontDoorError?
     
     var bindings = AuthenticationStartScreenViewStateBindings()
     
@@ -59,7 +64,9 @@ struct AuthenticationStartScreenViewState: BindableState {
     }
     
     var loginButtonTitle: String {
-        if let serverNameOrBaseURL {
+        if signsInWithEmail {
+            LeveragersL10n.signInContinue
+        } else if let serverNameOrBaseURL {
             L10n.screenOnboardingSignInTo(serverNameOrBaseURL)
         } else if showQRCodeLoginButton {
             L10n.screenOnboardingSignInManually
@@ -67,9 +74,23 @@ struct AuthenticationStartScreenViewState: BindableState {
             L10n.actionContinue
         }
     }
+    
+    var canContinue: Bool {
+        !signsInWithEmail || !bindings.email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+    
+    var emailFooterText: String? {
+        switch emailError {
+        case .invalidEmail: LeveragersL10n.signInErrorInvalidEmail
+        case .frontDoorUnavailable: LeveragersL10n.signInErrorFrontDoorUnavailable
+        case nil: nil
+        }
+    }
 }
 
 struct AuthenticationStartScreenViewStateBindings {
+    /// Leveragers: pre-filled with the last email address used to sign in.
+    var email = ""
     var alertInfo: AlertInfo<AuthenticationStartScreenAlertType>?
     var showClassicAppBackupInstructions = false
 }
@@ -81,6 +102,8 @@ enum AuthenticationStartScreenAlertType {
 enum AuthenticationStartScreenViewAction {
     /// Updates the window used as the OAuth presentation anchor.
     case updateWindow(UIWindow)
+    /// Leveragers: the email address changed.
+    case clearEmailError
     case developerOptions
     case reportProblem
     

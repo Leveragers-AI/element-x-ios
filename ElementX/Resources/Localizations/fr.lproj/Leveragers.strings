@@ -1,0 +1,7 @@
+/* Leveragers: our own texts, kept apart from Element's tables (regenerated at each sync). */
+
+/* Sign-in: email screen, read through LeveragersL10n. */
+"screen_sign_in_email_label" = "E-mail";
+"screen_sign_in_continue" = "Continuer";
+"screen_sign_in_error_invalid_email" = "Saisissez une adresse e-mail valide.";
+"screen_sign_in_error_front_door_unavailable" = "Connexion impossible pour le moment. Vérifiez votre connexion et réessayez.";
