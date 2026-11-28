@@ -109,6 +109,24 @@ struct SilentRecoverySetupTests {
         try await deferred.fulfill()
     }
     
+    @Test("Without a known verification state in time, the banner is released, and the watch goes on")
+    func bannerReleasedWhenUndecided() async throws {
+        let setup = makeSetup(decisionTimeout: .milliseconds(200))
+        let bannerRecoveryStates = setup.securityStateForBanner(securityStates.asCurrentValuePublisher()).map(\.recoveryState)
+        setup.startAfterSignIn(isNewLogin: true)
+        
+        let deferred = deferFulfillment(bannerRecoveryStates) { $0 == .disabled }
+        securityStates.send(.init(verificationState: .unknown, recoveryState: .disabled))
+        try await deferred.fulfill()
+        #expect(!secureBackupController.generateRecoveryKeyWithPassphraseCalled)
+        
+        // The watch went on: a late "verified" still sets recovery up.
+        securityStates.send(.init(verificationState: .verified, recoveryState: .disabled))
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(secureBackupController.generateRecoveryKeyWithPassphraseReceivedInvocations == [nil])
+        #expect(!setup.isPending.value)
+    }
+    
     @Test("Each user session has its own silent setup", .enabled(if: !AppSettings.leveragersRecoveryKeyRecipient.isEmpty))
     func oneSetupPerUserSession() async throws {
         let userSession = UserSessionMock(.init())
@@ -125,9 +143,10 @@ struct SilentRecoverySetupTests {
     
     // MARK: - Helpers
     
-    private func makeSetup(isEnabled: Bool = true) -> SilentRecoverySetup {
+    private func makeSetup(isEnabled: Bool = true, decisionTimeout: Duration = .seconds(120)) -> SilentRecoverySetup {
         SilentRecoverySetup(securityStates: securityStates.asCurrentValuePublisher(),
                             secureBackupController: secureBackupController,
-                            isEnabled: isEnabled)
+                            isEnabled: isEnabled,
+                            decisionTimeout: decisionTimeout)
     }
 }

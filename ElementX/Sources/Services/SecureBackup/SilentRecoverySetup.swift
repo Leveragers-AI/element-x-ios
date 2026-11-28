@@ -21,6 +21,9 @@ final class SilentRecoverySetup {
     private let securityStates: CurrentValuePublisher<SessionSecurityState, Never>
     private let secureBackupController: SecureBackupControllerProtocol
     private let isEnabled: Bool
+    /// How long, at most, Element's banner waits for the first known verification state of a new sign-in (a broken
+    /// encryption setup may never give one).
+    private let decisionTimeout: Duration
     
     /// True from a new sign-in until it is known whether it created the identity, and while recovery is being set up:
     /// Element's "Set up recovery" banner waits for it.
@@ -30,14 +33,17 @@ final class SilentRecoverySetup {
     }
     
     private var signInCancellable: AnyCancellable?
+    private var decisionTimeoutTask: Task<Void, Never>?
     private var firstKnownVerificationState: SessionVerificationState?
     
     init(securityStates: CurrentValuePublisher<SessionSecurityState, Never>,
          secureBackupController: SecureBackupControllerProtocol,
-         isEnabled: Bool) {
+         isEnabled: Bool,
+         decisionTimeout: Duration = .seconds(120)) {
         self.securityStates = securityStates
         self.secureBackupController = secureBackupController
         self.isEnabled = isEnabled
+        self.decisionTimeout = decisionTimeout
     }
     
     /// Watches the start of a session: on a new sign-in whose first known verification state is "verified" (the SDK
@@ -51,6 +57,15 @@ final class SilentRecoverySetup {
             .sink { [weak self] state in
                 self?.signInSecurityStateChanged(state)
             }
+        
+        // Past the timeout the banner follows Element's logic again, the watch goes on.
+        decisionTimeoutTask = Task { [weak self, decisionTimeout] in
+            try? await Task.sleep(for: decisionTimeout)
+            guard let self, !Task.isCancelled, signInCancellable != nil else { return }
+            
+            MXLog.warning("Leveragers: this sign-in is still undecided, the recovery banner is no longer held back.")
+            isPendingSubject.send(false)
+        }
     }
     
     /// "Reset identity" has completed: the SDK turned recovery off, set it up again on the new identity.
@@ -88,6 +103,7 @@ final class SilentRecoverySetup {
         }
         
         signInCancellable = nil
+        decisionTimeoutTask?.cancel()
         
         if createdIdentity, state.recoveryState == .disabled {
             MXLog.info("Leveragers: this sign-in created the account's identity, setting up recovery silently.")

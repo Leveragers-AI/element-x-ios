@@ -256,7 +256,7 @@ private final class SleepRecorder {
 
 /// A fake chat server: answers the account data requests (GET) and the copy requests (POST) from two scripts, and
 /// records every request.
-private final nonisolated class EscrowURLProtocol: URLProtocol {
+private nonisolated class EscrowURLProtocol: URLProtocol {
     nonisolated enum Answer: Sendable {
         case status(Int)
         case json(Int, String)
