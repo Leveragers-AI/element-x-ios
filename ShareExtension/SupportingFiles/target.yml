@@ -80,6 +80,7 @@ targets:
           PROVISIONING_PROFILE_SPECIFIER: "Agents by Leveragers Share App Store"
       base:
         PRODUCT_NAME: ShareExtension
+        TARGETED_DEVICE_FAMILY: "1" # Leveragers: iPhone only for now (iPads run the iPhone version).
         PRODUCT_DISPLAY_NAME: $(APP_DISPLAY_NAME)
         PRODUCT_BUNDLE_IDENTIFIER: ${BASE_BUNDLE_IDENTIFIER}.shareextension
         MARKETING_VERSION: $(MARKETING_VERSION)

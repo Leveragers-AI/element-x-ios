@@ -136,6 +136,7 @@ targets:
           PROVISIONING_PROFILE_SPECIFIER: "Agents by Leveragers App Store"
       base:
         PRODUCT_NAME: $(APP_NAME)
+        TARGETED_DEVICE_FAMILY: "1" # Leveragers: iPhone only for now (iPads run the iPhone version).
         PRODUCT_BUNDLE_IDENTIFIER: $(BASE_BUNDLE_IDENTIFIER)
         MARKETING_VERSION: $(MARKETING_VERSION)
         CURRENT_PROJECT_VERSION: $(CURRENT_PROJECT_VERSION)
