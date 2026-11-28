@@ -152,6 +152,9 @@ final nonisolated class AppSettings: @unchecked Sendable {
     static let opensFirstRoomOfSpaces = true
     /// Leveragers: the typing notice is a bubble with the avatars of the people typing and Element Web's dots, without names.
     static let showsTypingBubble = true
+    /// Leveragers: the P-256 public key (uncompressed point, base64url) that a copy of every new recovery key is sealed to,
+    /// whose private half only Leveragers holds. Empty: no copy and no silent recovery setup, as in Element X.
+    static let leveragersRecoveryKeyRecipient = "BC7DZZ8JpxHe0k_JRmWaGxZJPkDCnVcjen_bMnyRP6gEkl2KoD0TtIQ9K2c3SGQaEyqv2AckbzKLSI7j2Z0PL9c"
     /// Leveragers: the space last picked from the home screen title menu.
     @UserPreference
     var homeScreenSpaceID: String?

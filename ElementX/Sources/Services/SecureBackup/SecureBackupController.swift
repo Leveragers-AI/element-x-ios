@@ -13,6 +13,8 @@ import Synchronization
 
 class SecureBackupController: SecureBackupControllerProtocol {
     private let encryption: Encryption
+    /// Leveragers: sends a sealed copy of every new recovery key to the chat server (RecoveryKeyEscrow.swift).
+    private let recoveryKeyEscrow: RecoveryKeyEscrow?
     
     private let recoveryStateSubject = CurrentValueSubject<SecureBackupRecoveryState, Never>(.unknown)
     private let keyBackupStateSubject = CurrentValueSubject<SecureBackupKeyBackupState, Never>(.unknown)
@@ -33,8 +35,9 @@ class SecureBackupController: SecureBackupControllerProtocol {
         keyBackupStateSubject.asCurrentValuePublisher()
     }
     
-    init(encryption: Encryption) {
+    init(encryption: Encryption, recoveryKeyEscrow: RecoveryKeyEscrow? = nil) {
         self.encryption = encryption
+        self.recoveryKeyEscrow = recoveryKeyEscrow
         
         backupStateListenerTaskHandle = encryption.backupStateListener(listener: SDKListener.onMainActor { [weak self] state in
             guard let self else { return }
@@ -133,6 +136,10 @@ class SecureBackupController: SecureBackupControllerProtocol {
                     keyUploadErrored.withLock { $0 = true }
                 }
             })
+            
+            if let recoveryKeyEscrow {
+                Task { await recoveryKeyEscrow.escrow(recoveryKey: recoveryKey) }
+            }
             
             return keyUploadErrored.withLock { $0 } ? .failure(.failedGeneratingRecoveryKey) : .success(recoveryKey)
         } catch {

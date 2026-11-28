@@ -171,7 +171,8 @@ class ClientProxy: ClientProxyProtocol {
         
         notificationSettings = await NotificationSettingsProxy(notificationSettings: client.getNotificationSettings())
         
-        secureBackupController = SecureBackupController(encryption: client.encryption())
+        // Leveragers: with the copy of new recovery keys (RecoveryKeyEscrow.swift).
+        secureBackupController = SecureBackupController(encryption: client.encryption(), recoveryKeyEscrow: RecoveryKeyEscrow(client: client))
         
         spaceService = await SpaceServiceProxy(spaceService: client.spaceService())
         
