@@ -73,7 +73,8 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             .weakAssign(to: \.state.userProfile, on: self)
             .store(in: &cancellables)
         
-        userSession.sessionSecurityStatePublisher
+        // Leveragers: no "Set up recovery" banner while recovery is set up silently (SilentRecoverySetup.swift).
+        SilentRecoverySetup.securityStateForBanner(of: userSession)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] securityState in
                 guard let self else { return }

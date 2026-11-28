@@ -93,6 +93,9 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
                 userSettings.account.hasRunIdentityConfirmationOnboarding = true
                 stateMachine.tryEvent(.nextSkippingIdentityConfirmed)
             }
+        
+        // Leveragers: recovery set up silently when this sign-in created the account's identity (SilentRecoverySetup.swift).
+        SilentRecoverySetup.startAfterSignIn(isNewLogin: isNewLogin, userSession: userSession)
     }
     
     var shouldStart: Bool {

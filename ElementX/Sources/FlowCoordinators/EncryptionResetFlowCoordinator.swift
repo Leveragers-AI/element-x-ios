@@ -126,6 +126,8 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
             case .cancel:
                 actionsSubject.send(.cancel)
             case .resetFinished:
+                // Leveragers: recovery set up silently on the new identity (SilentRecoverySetup.swift).
+                SilentRecoverySetup.startAfterIdentityReset(userSession: userSession)
                 actionsSubject.send(.resetComplete)
             }
         }
