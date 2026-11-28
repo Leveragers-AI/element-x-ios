@@ -190,6 +190,8 @@ final nonisolated class AppSettings: @unchecked Sendable {
     private(set) var elementWebHosts = ["agents.leveragers.com"]
     /// The domain that account provisioning links will be hosted on - used for handling the links.
     private(set) var accountProvisioningHost = "agents.leveragers.com"
+    /// Leveragers: the front door, a public storage bucket that holds the app update thresholds (`app/agents.json`).
+    private(set) var leveragersFrontDoorURL: URL = "https://login.leveragers.com"
     /// The App Store URL for Element Pro, shown to the user when a homeserver requires that app.
     /// **Note:** This property isn't overridable as it in unexpected for forks to come across the error (or to even have a "Pro" app).
     let elementProAppStoreURL: URL = "https://apps.apple.com/app/element-pro-for-work/id6502951615"

@@ -1,0 +1,12 @@
+/* Leveragers: our own texts, kept apart from Element's tables (regenerated at each sync). */
+
+/* Update check: blocking screen when the build is below the minimum. */
+"app_update_required_title" = "Update required";
+"app_update_required_message" = "This version of Agents is no longer supported. Update the app to continue.";
+
+/* Update check: dialog when the build is below the recommended one. */
+"app_update_available_title" = "Update available";
+"app_update_available_message" = "A new version of Agents is available.";
+
+"app_update_action_update" = "Update";
+"app_update_action_later" = "Later";

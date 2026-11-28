@@ -64,6 +64,9 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
     
     private let appRouteURLParser: AppRouteURLParser
     
+    /// Leveragers: the update check, in a window of its own above Element's.
+    private let appUpdateGate: AppUpdateGate
+    
     /// A reply made from a notification before its account was live.
     private var storedInlineReply: PendingInlineReplyDetails?
     
@@ -83,6 +86,10 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
         }
         let appSettings = appHooks.appSettingsHook.configure(AppSettings(store: userDefaults))
         self.appSettings = appSettings
+        
+        appUpdateGate = AppUpdateGate(service: AppUpdateService(frontDoorURL: appSettings.leveragersFrontDoorURL,
+                                                                ownBuild: Int(InfoPlistReader.main.bundleVersion),
+                                                                store: userDefaults))
         
         targetConfiguration = Target.mainApp.configure(logLevel: appSettings.logLevel,
                                                        traceLogPacks: appSettings.traceLogPacks,
@@ -353,6 +360,11 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
     func windowManagerDidConfigureWindows(_ windowManager: SecureWindowManagerProtocol) {
         windowManager.alternateWindow.rootViewController = UIHostingController(rootView: appLockFlowCoordinator.toPresentable())
         userIndicatorController.window = windowManager.overlayWindow
+        
+        // Leveragers: the update check's window goes above these, on the same scene.
+        if let scene = windowManager.mainWindow.windowScene {
+            appUpdateGate.start(in: scene)
+        }
     }
     
     // MARK: - NotificationManagerDelegate
