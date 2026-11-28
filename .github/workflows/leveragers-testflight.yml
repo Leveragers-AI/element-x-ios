@@ -11,8 +11,24 @@ name: Leveragers TestFlight
 # Every uploaded build then goes to the open test (external group "Test ouvert", public link): the job
 # open-test, on a Linux machine, waits for Apple's processing, sets "What to Test", adds the build to the
 # group and submits it to Apple's beta review (.github/scripts/testflight_open_test.py).
+# A run started by hand with open_test=false (a sync/* branch, Element's new version merged in) stops at the
+# upload: the build goes to the internal group "Leveragers" only. The open test only ever takes builds of
+# leveragers. unit_tests=true also runs Element's unit tests (lint + unit tests, no preview snapshots).
 on:
   workflow_dispatch:
+    inputs:
+      open_test:
+        description: Also send the build to the open test (public link). Only builds of leveragers go there.
+        type: boolean
+        default: true
+      unit_tests:
+        description: Also run Element's unit tests (lint + unit tests, no preview snapshots)
+        type: boolean
+        default: false
+      build:
+        description: Build and upload to TestFlight (off to run only the unit tests, e.g. on a copy of leveragers for comparison)
+        type: boolean
+        default: true
   push:
     branches: [leveragers]
     paths-ignore:
@@ -24,6 +40,7 @@ permissions:
 jobs:
   testflight:
     name: Build and upload to TestFlight
+    if: github.event_name == 'push' || inputs.build
     runs-on: xcode-27
     timeout-minutes: 180
     # One build at a time; the open test job below doesn't hold back the next build.
@@ -59,9 +76,12 @@ jobs:
         with:
           persist-credentials: false
 
+      # The Xcode version Element's own CI uses (ci_scripts/ci_common.sh), so a new Element version that moves
+      # to a newer Xcode needs no change here.
       - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_27.app
+          source ci_scripts/ci_common.sh
+          xcode_select_for_github_actions
           xcodebuild -version
 
       - name: Install XcodeGen
@@ -245,9 +265,43 @@ jobs:
           [ -n "${SIGNING_KEYCHAIN:-}" ] && security delete-keychain "$SIGNING_KEYCHAIN" || true
           rm -f "${ASC_KEY_PATH:-/nonexistent}"
 
+  unit-tests:
+    name: Element's unit tests
+    if: github.event_name == 'workflow_dispatch' && inputs.unit_tests
+    runs-on: xcode-27
+    timeout-minutes: 90
+    steps:
+      # With Git LFS: the media tests read Element's sample files, stored in LFS.
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+          lfs: true
+
+      - name: Setup environment
+        run: source ci_scripts/ci_common.sh && setup_github_actions_environment
+
+      # The committed ElementX.xcodeproj does not list our own files: generate it, as the build job does.
+      - name: Generate the Xcode project
+        run: xcodegen
+
+      - name: Run the unit tests
+        run: swift run -q tools ci unit-tests --skip-previews
+
+      - name: Keep the results
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unit-test-results
+          path: test_output/UnitTests.zip
+          retention-days: 7
+          if-no-files-found: ignore
+
   open-test:
     name: Send to the open test (public link)
     needs: testflight
+    # Only builds of leveragers, and never a run started by hand with open_test=false.
+    if: github.ref == 'refs/heads/leveragers' && (github.event_name == 'push' || inputs.open_test)
     runs-on: ubuntu-latest
     timeout-minutes: 75
     env:
