@@ -161,7 +161,8 @@ class AppCoordinator: AppCoordinatorProtocol, NotificationManagerDelegate, Secur
         
         configureNotificationManager()
         
-        guard let currentVersion = Version(InfoPlistReader(bundle: .main).bundleShortVersionString) else {
+        // Leveragers: Element's version, not ours, so that Element's update steps run once, as in Element.
+        guard let currentVersion = Version(InfoPlistReader(bundle: .main).elementVersion) else {
             fatalError("The app's version number **must** use semver for migration purposes.")
         }
         

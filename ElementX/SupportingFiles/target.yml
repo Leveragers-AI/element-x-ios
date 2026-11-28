@@ -55,6 +55,7 @@ targets:
         CFBundleDisplayName: $(APP_DISPLAY_NAME)
         CFBundleName: $(APP_DISPLAY_NAME) # Leveragers: shown by iOS in the "Wants to Use … to Sign In" alert.
         CFBundleShortVersionString: $(MARKETING_VERSION)
+        ElementVersion: $(ELEMENT_VERSION) # Leveragers: read by the update steps instead of our own version.
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleURLTypes: [
           {

@@ -14,6 +14,7 @@ nonisolated struct InfoPlistReader {
         static let baseBundleIdentifier = "baseBundleIdentifier"
         static let keychainAccessGroupIdentifier = "keychainAccessGroupIdentifier"
         static let bundleShortVersion = "CFBundleShortVersionString"
+        static let elementVersion = "ElementVersion"
         static let bundleDisplayName = "CFBundleDisplayName"
         static let productionAppName = "productionAppName"
         static let isNightlyBuild = "isNightlyBuild"
@@ -77,6 +78,12 @@ nonisolated struct InfoPlistReader {
     /// Bundle short version string of the target
     var bundleShortVersionString: String {
         infoPlistValue(forKey: Keys.bundleShortVersion)
+    }
+    
+    /// Leveragers: the Element release the app is based on. Element's update steps are keyed to Element's
+    /// version numbers, while the bundle version is ours (1.0.0…), so they compare this one instead.
+    var elementVersion: String {
+        infoPlistValue(forKey: Keys.elementVersion)
     }
     
     /// Bundle version of the target
